@@ -1,0 +1,52 @@
+MODEL_NAME: vgg16_pca
+PCA:
+  VOTING_ALPHA: 50.0
+  GNN_FEAT: 2048
+  GNN_LAYER: 2
+  BS_EPSILON: 1e-10
+  FEATURE_CHANNEL: 512
+  BS_ITER_NUM: 40
+OUTPUT_PATH: output/vgg16_pca_wire
+EXPAND_REGION: 7
+BATCH_SIZE: 3
+RANDOM_SEED: 123
+STATISTIC_STEP: 100
+CACHE_PATH: data/cache
+TRAIN:
+  RLOSS_NORM: 256
+  START_EPOCH: 0
+  EPOCH_ITERS: 1000
+  LR_STEP: [10]
+  LR: 0.005
+  LR_DECAY: 0.1
+  NUM_EPOCHS: 10
+  LOSS_FUNC: perm
+  CLASS: none
+  MOMENTUM: 0.9
+MODULE: PCA.model
+GPUS: [0]
+DATASET_FULL_NAME: Scannet
+NORM_STD: [0.229, 0.224, 0.225]
+BACKBONE: VGG16_bn
+NORM_MEANS: [0.485, 0.456, 0.406]
+WIREFRAME:
+  TRAIN_IMAGE_DIR: /home/mameng/dataset/scannet/datadir_line09nms/train_img.txt
+  TRAIN_KEY_POINT_DIR: /home/mameng/dataset/scannet/datadir_line09nms/train_label.txt
+  TEST_IMAGE_DIR: /home/mameng/dataset/scannet/datadir_line09nms/val_img.txt
+  TEST_KEY_POINT_DIR: /home/mameng/dataset/scannet/datadir_line09nms/val_label.txt
+OUTPUT_SIZE: [7, 5]
+EVAL:
+  PCK_ALPHAS: [0.05, 0.1]
+  EPOCH: 4
+  PCK_L: 256.0
+  SAMPLES: 1000
+DATASET_NAME: wire
+SCALES: [0.125, 0.0625]
+PAIR:
+  RESCALE: [512, 512]
+DATALOADER_NUM: 8
+Start training...
+model on device: cuda:0
+Epoch 0/9
+----------
+lr = 5.00e-03

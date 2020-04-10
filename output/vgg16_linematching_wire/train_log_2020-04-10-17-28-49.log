@@ -1,0 +1,53 @@
+CACHE_PATH: data/cache
+TRAIN:
+  NUM_EPOCHS: 10
+  LR: 0.005
+  LOSS_FUNC: perm
+  CLASS: none
+  LR_DECAY: 0.1
+  LR_STEP: [10]
+  EPOCH_ITERS: 1000
+  START_EPOCH: 0
+  RLOSS_NORM: 256
+  MOMENTUM: 0.9
+BACKBONE: VGG16_bn
+DATASET_FULL_NAME: Scannet
+NORM_STD: [0.229, 0.224, 0.225]
+RANDOM_SEED: 123
+DATALOADER_NUM: 8
+SCALES: [0.125, 0.0625]
+MODEL_NAME: vgg16_linematching
+MODULE: LM.model
+NORM_MEANS: [0.485, 0.456, 0.406]
+OUTPUT_PATH: output/vgg16_linematching_wire
+WIREFRAME:
+  TRAIN_IMAGE_DIR: /home/mameng/dataset/scannet/datadir_line09nms/train_img.txt
+  TRAIN_KEY_POINT_DIR: /home/mameng/dataset/scannet/datadir_line09nms/train_label.txt
+  TEST_KEY_POINT_DIR: /home/mameng/dataset/scannet/datadir_line09nms/val_label.txt
+  TEST_IMAGE_DIR: /home/mameng/dataset/scannet/datadir_line09nms/val_img.txt
+EVAL:
+  PCK_L: 256.0
+  SAMPLES: 1000
+  EPOCH: 4
+  PCK_ALPHAS: [0.05, 0.1]
+DATASET_NAME: wire
+GPUS: [0]
+BATCH_SIZE: 3
+EXPAND_REGION: 7
+STATISTIC_STEP: 100
+PAIR:
+  RESCALE: [512, 512]
+LM:
+  VOTING_ALPHA: 50.0
+  GNN_LAYER: 2
+  BS_EPSILON: 1e-10
+  FEATURE_CHANNEL: 512
+  GNN_FEAT: 2048
+  BS_ITER_NUM: 40
+OUTPUT_SIZE: [7, 5]
+Start training...
+model on device: cuda:0
+Epoch 0/9
+----------
+lr = 5.00e-03
+Epoch 0    Iteration 100  3.80sample/s Loss=9.8087  
