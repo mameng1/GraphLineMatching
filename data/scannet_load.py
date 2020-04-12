@@ -15,8 +15,7 @@ class ScannetDataset(Dataset):
     def __init__(self, name, length, expand_region,cls=None, **args):
         self.name = name
         self.ds = eval(self.name)(**args)
-        self.length = length  # NOTE images pairs are sampled randomly, so there is no exact definition of dataset size
-                              # length here represents the iterations between two checkpoints
+        self.length = length  
         self.obj_size = self.ds.obj_resize
         self.expand_region=expand_region
         self.classes=self.ds.classes
@@ -39,8 +38,8 @@ class ScannetDataset(Dataset):
             if angle < -45.0:
                 angle = angle + 180
 
-            x_ctr = float(pt1[0] + pt2[0]) / 2  # pt1[0] + np.abs(float(pt1[0] - pt3[0])) / 2
-            y_ctr = float(pt1[1] + pt2[1]) / 2  # pt1[1] + np.abs(float(pt1[1] - pt3[1])) / 2
+            x_ctr = float(pt1[0] + pt2[0]) / 2  
+            y_ctr = float(pt1[1] + pt2[1]) / 2  
             width = math.sqrt((pt1[0] - pt2[0]) * (pt1[0] - pt2[0]) + (pt1[1] - pt2[1]) * (pt1[1] - pt2[1]))
             boxes.append([x_ctr, y_ctr,self.expand_region,width,angle])
         boxes=np.array(boxes)

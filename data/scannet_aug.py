@@ -49,10 +49,7 @@ class Scannet:
         :return: (pair of data, groundtruth permutation matrix)
         """
         dataset_len=len(self.anno_list)
-        #subdir = random.randrange(0, dataset_len)
-        #anno_file = self.anno_path / str(subdir)
-        #annos_list = os.listdir(str(anno_file.absolute()))
-
+      
         anno_pair = []
         idx=random.randint(0,dataset_len-1)
         anno_dir=self.anno_list[idx]
@@ -60,8 +57,7 @@ class Scannet:
         img_list=os.listdir(img_dir)
         idxr=random.randint(0,1)
         img1=img_list[idxr]
-        #annos_list=anno_name.split(" ")
-        #img_list=img_name.split(" ")
+       
         for img_namedir in img_list:
             img_namedir=img1
             anno_name=os.path.join(anno_dir,img_namedir)
@@ -89,33 +85,17 @@ class Scannet:
                     row_list.append(i)
                     col_list.append(j)
                     break
-        """
-        weights = np.zeros(perm_mat.shape, dtype=np.float32)
-        rneg_w=len(row_list)/len1
-        cneg_w=len(col_list)/len2
-        rpos_w=1-rneg_w
-        cpos_w=1-cneg_w
-        for idx in row_list:
-            weights[idx,:]=rpos_w
-        for idx in col_list:
-            weights[:,idx]=cpos_w
-        """
-        #print(min(rneg_w,cneg_w))
+      
         row_list.sort()
         col_list.sort()
         if(self.sets=="train"):
             for idx in range(len1):
                 if(idx not in row_list):
                     perm_mat[idx,-1]=1
-                    #weights[idx, :]=rneg_w
+
             for idx in range(len2):
                 if(idx not in col_list):
                     perm_mat[-1,idx]=1
-                    #weights[:, idx] = cneg_w
-        #perm_mat = perm_mat[row_list, :]
-        #perm_mat = perm_mat[:, col_list]
-        #anno_pair[0]['keypoints'] = [anno_pair[0]['keypoints'][i] for i in row_list]
-        #anno_pair[1]['keypoints'] = [anno_pair[1]['keypoints'][j] for j in col_list]
 
         return anno_pair, perm_mat,None
     def select_lines(self,keypoint1,keypoint2):
@@ -171,13 +151,11 @@ class Scannet:
         anno_name=img_name.split(".")[0]+".txt"
         anno_name=os.path.join(annodir_name,anno_name)
         img_name=os.path.join(imgdir_name,img_name)
-        #annbase=os.path.basename(anno_name).split("")
-        #img_base=os.path.basename(img_name)
-        #if()
-        anno_file = Path(anno_name)#self.anno_path / str(subdir) / anno_name
+       
+        anno_file = Path(anno_name)
         assert anno_file.exists(), '{} does not exist.'.format(anno_file)
-        #img_name = anno_name.split(".")[0] + ".jpg"
-        img_file = Path(img_name)#self.img_path / str(subdir) / img_name
+
+        img_file = Path(img_name)
 
         with Image.open(img_file) as img:
             height = img.height
@@ -190,21 +168,19 @@ class Scannet:
             delta_h = self.obj_resize[1] - new_size[1]
             padding = (delta_w // 2, delta_h // 2, delta_w - (delta_w // 2), delta_h - (delta_h // 2))
             obj = ImageOps.expand(obj, padding)
-        #draw = ImageDraw.Draw(obj)
+
         keypoint_list = []
         with open(str(anno_file.absolute()), "r") as anno:
             all_keypts = anno.readlines()
             all_keypts = [i.split(" ") for i in all_keypts]
-            #len1=len(all_keypts)//2
-            #all_keypts=all_keypts[:len1]
+           
             for keypoint in all_keypts:
                 keypoint[1] = float(keypoint[1]) * ratio + delta_w // 2
                 keypoint[3] = float(keypoint[3]) * ratio + delta_w // 2
                 keypoint[2] = float(keypoint[2]) * ratio + delta_h // 2
                 keypoint[4] = float(keypoint[4]) * ratio + delta_h // 2
                 keypoint_list.append(keypoint)
-                #draw.line((keypoint[1],keypoint[2],keypoint[3],keypoint[4]),fill=(255,255,255),width=2)
-        #obj.show()
+                
         anno_dict = dict()
         anno_dict['image'] = obj
         anno_dict['keypoints'] = keypoint_list

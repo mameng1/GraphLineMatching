@@ -142,13 +142,10 @@ class Scannet:
         """
         Get an annotation dict from xml file
         """
-        #annbase=os.path.basename(anno_name).split("")
-        #img_base=os.path.basename(img_name)
-        #if()
-        anno_file = Path(anno_name)#self.anno_path / str(subdir) / anno_name
+        anno_file = Path(anno_name)
         assert anno_file.exists(), '{} does not exist.'.format(anno_file)
-        #img_name = anno_name.split(".")[0] + ".jpg"
-        img_file = Path(img_name)#self.img_path / str(subdir) / img_name
+
+        img_file = Path(img_name)
 
         with Image.open(img_file) as img:
             height = img.height
@@ -161,21 +158,19 @@ class Scannet:
             delta_h = self.obj_resize[1] - new_size[1]
             padding = (delta_w // 2, delta_h // 2, delta_w - (delta_w // 2), delta_h - (delta_h // 2))
             obj = ImageOps.expand(obj, padding)
-        #draw = ImageDraw.Draw(obj)
+
         keypoint_list = []
         with open(str(anno_file.absolute()), "r") as anno:
             all_keypts = anno.readlines()
             all_keypts = [i.split(" ") for i in all_keypts]
-            #len1=len(all_keypts)//2
-            #all_keypts=all_keypts[:len1]
+
             for keypoint in all_keypts:
                 keypoint[1] = float(keypoint[1]) * ratio + delta_w // 2
                 keypoint[3] = float(keypoint[3]) * ratio + delta_w // 2
                 keypoint[2] = float(keypoint[2]) * ratio + delta_h // 2
                 keypoint[4] = float(keypoint[4]) * ratio + delta_h // 2
                 keypoint_list.append(keypoint)
-                #draw.line((keypoint[1],keypoint[2],keypoint[3],keypoint[4]),fill=(255,255,255),width=2)
-        #obj.show()
+
         anno_dict = dict()
         anno_dict['image'] = obj
         anno_dict['keypoints'] = keypoint_list
