@@ -42,7 +42,7 @@ def assignment(s: torch.Tensor,gt,n1=None, n2=None):
     batch_num = s.shape[0]
 
     perm_mat = s.cpu().detach().numpy() * -1
-    gt_s = gt.cpu().numpy()
+   # gt_s = gt.cpu().numpy()
     batch_size, height, width = perm_mat.shape
     small_perm_mat = np.zeros((batch_size, height - 1, width - 1), dtype=np.float32)
     score_mat = -1 * perm_mat
@@ -71,7 +71,7 @@ def assignment(s: torch.Tensor,gt,n1=None, n2=None):
         perm_m[rowi,coli]=1
         perm_ms=perm_m[:n1b,:n2b]
         # cur_s=np.max(score_mat[b,:n1b,:n2b],axis=-1)
-        gt_sf = gt_s[b, :n1b, :n2b]
+        #gt_sf = gt_s[b, :n1b, :n2b]
 
         small_perm_mat[b] = np.zeros_like(small_perm_mat[b])
         small_perm_mat[b, :n1b,:n2b] = perm_ms
@@ -95,7 +95,7 @@ def hungarian(s: torch.Tensor,gt,n1=None, n2=None):
     batch_num = s.shape[0]
 
     perm_mat = s.cpu().detach().numpy() * -1
-    gt_s=gt.cpu().numpy()
+    #gt_s=gt.cpu().numpy()
     batch_size,height,width=perm_mat.shape
     small_perm_mat=np.zeros((batch_size,height-1,width-1),dtype=np.float32)
     score_mat=-1*perm_mat
@@ -128,7 +128,7 @@ def hungarian(s: torch.Tensor,gt,n1=None, n2=None):
         #perm_m[rowi,coli]=1
         #perm_ms=perm_m[:n1b,:n2b]
         #cur_s=np.max(score_mat[b,:n1b,:n2b],axis=-1)
-        gt_sf=gt_s[b,:n1b,:n2b]
+        #gt_sf=gt_s[b,:n1b,:n2b]
         #print(np.sum(gt_sf))
         #gt_sa=np.max(gt_s,axis=-1)
         debug=0
@@ -158,8 +158,8 @@ def hungarian(s: torch.Tensor,gt,n1=None, n2=None):
             cur_score=score_region[row_idx,col_idx]
             last_cols=score_region[row_idx,-1]
             last_rows=score_region[-1,col_idx]
-            if(
-                (cur_score<0.45)):
+            if((0.85*cur_score<last_cols) or
+               (0.85*cur_score<last_rows)):
                 result[row_idx,col_idx]=0
 
         small_perm_mat[b] = result

@@ -3,7 +3,9 @@ import time
 from datetime import datetime
 from pathlib import Path
 import argparse
-
+from utils.parse_args import test_parse_args
+import math
+import random
 from utils.hungarian import hungarian
 from utils.evaluation_metric import matching_accuracy
 from parallel import DataParallel
@@ -12,236 +14,151 @@ from torchvision import transforms
 from utils.config import cfg
 from PIL import Image,ImageDraw, ImageOps
 from data.scannet_load import ScannetDataset,get_dataloader
-def pred_vis(data1,data2,pts1,pts2,pred_link,cfg):
-    mean=torch.tensor([cfg.NORM_MEANS])
-    std=torch.tensor([cfg.NORM_STD])
+import numpy as np
+import importlib
+def mergeImg(limg,rimg,edge_w=50):
+    width,height = limg.size
+    result = Image.new(limg.mode,(width*2+edge_w,height))
+    result.paste(limg, box=(0, 0))
+    result.paste(rimg, box=(width+edge_w, 0))
+    return result
+def pred_vis(limg_path,rimg_path,lline_path,rline_path,left_idx,right_idx,output_path):
+    left_image=Image.open(limg_path)
+    right_image=Image.open(rimg_path)
 
-    mean=mean.transpose(1,0)
-    std=std.transpose(1,0)
+    left_lines=readLines(lline_path,(1,0,0))
+    right_lines=readLines(rline_path,(1,0,0))
 
-    mean = torch.unsqueeze(mean,2)
-    std = torch.unsqueeze(std, 2)
+    res=mergeImg(left_image,right_image,50)
+    width,height=left_image.size
+    res_draw=ImageDraw.Draw(res)
 
-    data1=data1.cpu()
-    data2 = data2.cpu()
-    pts1 = pts1.cpu().numpy()
-    pts2 = pts2.cpu().numpy()
-    pred_link = pred_link.cpu().numpy()
-    _,lrow,lcol=pred_link.shape
+    def rndColor():
+        return (random.randint(64, 255), random.randint(64, 255), random.randint(64, 255))
 
-    batch_size=data1.size(0)
-    for i in range(batch_size):
-        data1_slice=data1[i]
-        data2_slice=data2[i]
-        pts1_slice=pts1[i]
-        pts2_slice=pts2[i]
-        predlink_slice=pred_link[i]
+    for left_id,right_id in zip(left_idx,right_idx):
+        left_line=left_lines[left_id]
+        right_line=right_lines[right_id]
+        right_line[0]=right_line[0]+50+width
+        right_line[2] = right_line[2] + 50 + width
+        color=rndColor()
+        res_draw.line((left_line[0], left_line[1], left_line[2], left_line[3]), fill=color, width=8)
+        res_draw.line((right_line[0], right_line[1], right_line[2], right_line[3]), fill=color, width=8)
+        # cv2.putText(limg,"{}".format(lidx),(lcx,lcy),cv2.FONT_HERSHEY_SIMPLEX,0.9,color,2)
+        # cv2.putText(rimg, "{}".format(ridx), (rcx, rcy), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+    #res.show()
+    res.save(output_path+"res.png")
 
-        data1_slice=data1_slice*std+mean
-        data2_slice=data2_slice*std+mean
-        height,width=data1_slice.size(1),data1_slice.size(2)
-        data1_slice=transforms.ToPILImage()(data1_slice)
-        data2_slice=transforms.ToPILImage()(data2_slice)
-        vis_img=Image.new(data1_slice.mode,(width*2,height))
-        vis_img.paste(data1_slice,(0,0))
-        vis_img.paste(data2_slice,(width,0))
-        canvas=ImageDraw.Draw(vis_img)
 
-        for ridx in range(lrow):
-            for cidx in range(lcol):
-                if(predlink_slice[ridx,cidx]>0.95):
-                    pt1=pts1_slice[ridx]
-                    pt2=pts2_slice[cidx]
-                    canvas.ellipse((pt1[0]-3,pt1[1]-3,pt1[0]+3,pt1[1]+3),fill=(0,0,255))
-                    canvas.ellipse((width+pt2[0] - 3,pt2[1] - 3, width+pt2[0] + 3, pt2[1] + 3), fill=(0, 0, 255))
-                    canvas.line((pt1[0],pt1[1],width+pt2[0],pt2[1]),fill=(0,255,0))
-        img_name="result_{}.png".format(i)
-        vis_img.save("./output/"+img_name)
-        debug=0
+def eval_model(l_img,r_img,l_boxes,r_boxes,l_pts,r_pts,model,model_path):
 
-def eval_model(model, dataloader, eval_epoch=None, verbose=False):
-    print('Start evaluation...')
-    since = time.time()
-
-    device = next(model.parameters()).device
-
-    if eval_epoch is not None:
-        model_path = str(Path(cfg.OUTPUT_PATH) / 'params' / 'params_{:04}.pt'.format(eval_epoch))
-        print('Loading model parameters from {}'.format(model_path))
-        load_model(model, model_path)
-
-    was_training = model.training
+    load_model(model, model_path)
     model.eval()
 
-    ds = dataloader.dataset
-    classes = ds.classes
-    #cls_cache = ds.cls
-
     lap_solver = hungarian
+    l_img=l_img.cuda()
+    r_img=r_img.cuda()
+    l_boxes=l_boxes.cuda()
+    r_boxes=r_boxes.cuda()
+    l_pts=l_pts.cuda()
+    r_pts=r_pts.cuda()
 
-    accs = torch.zeros(len(classes), device=device)
-    accs_prec = torch.zeros(len(classes), device=device)
+    with torch.set_grad_enabled(False):
+        s_pred, pred,match_emb1,match_emb2,match_edgeemb1,match_edgeemb2= \
+            model(l_img, r_img, l_boxes, r_boxes, l_pts, r_pts,train_stage=False)
 
-    for i, cls in enumerate(classes):
-        if verbose:
-            print('Evaluating class {}: {}/{}'.format(cls, i, len(classes)))
-
-        running_since = time.time()
-        iter_num = 0
-
-        ds.cls = cls
-        acc_match_num = torch.zeros(1, device=device)
-        acc_total_num = torch.zeros(1, device=device)
-        acc_total_pred_num= torch.zeros(1, device=device)
-        for inputs in dataloader:
-            if 'images' in inputs:
-                data1, data2 = [_.cuda() for _ in inputs['images']]
-                inp_type = 'img'
-            elif 'features' in inputs:
-                data1, data2 = [_.cuda() for _ in inputs['features']]
-                inp_type = 'feat'
-            else:
-                raise ValueError('no valid data key (\'images\' or \'features\') found from dataloader!')
-            P1_gt, P2_gt = [_.cuda() for _ in inputs['Ps']]
-            n1_gt, n2_gt = [_.cuda() for _ in inputs['ns']]
-            e1_gt, e2_gt = [_.cuda() for _ in inputs['es']]
-            G1_gt, G2_gt = [_.cuda() for _ in inputs['Gs']]
-            H1_gt, H2_gt = [_.cuda() for _ in inputs['Hs']]
-            KG, KH = [_.cuda() for _ in inputs['Ks']]
-            perm_mat = inputs['gt_perm_mat'].cuda()
-            #src_inliers,tgt_inliers = [_.cuda() for _ in inputs['inliers']]
-            batch_num = data1.size(0)
-
-            iter_num = iter_num + 1
-
-            with torch.set_grad_enabled(False):
-                s_pred, pred,match_emb1,match_emb2,match_edgeemb1,match_edgeemb2= \
-                    model(data1, data2, P1_gt, P2_gt, G1_gt, G2_gt, H1_gt, H2_gt, n1_gt, n2_gt, KG, KH, inp_type,train_stage=False)
-
-            #print("min:{},max:{}".format(torch.min(s_pred).item(), torch.max(s_pred).item()))
-            s_pred_perm = lap_solver(s_pred, perm_mat, n1_gt, n2_gt)
-            #if (iter_num == 1):
-            #    pred_vis(data1, data2, P1_gt, P2_gt, s_pred_perm,cfg)
-            _, _acc_match_num, _acc_total_num,_acc_totalpred_num = matching_accuracy(s_pred_perm, perm_mat, n1_gt,n2_gt)
-            acc_match_num += _acc_match_num
-            acc_total_num += _acc_total_num
-            acc_total_pred_num += _acc_totalpred_num
-
-            if iter_num % cfg.STATISTIC_STEP == 0 and verbose:
-                running_speed = cfg.STATISTIC_STEP * batch_num / (time.time() - running_since)
-                print('Class {:<8} Iteration {:<4} {:>4.2f}sample/s'.format(cls, iter_num, running_speed))
-                running_since = time.time()
-
-        accs[i] = acc_match_num / acc_total_num
-        accs_prec[i] = acc_match_num / acc_total_pred_num
-        if verbose:
-            print('Class {} acc = {:.4f}'.format(cls, accs[i]))
-
-    time_elapsed = time.time() - since
-    print('Evaluation complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-
-    model.train(mode=was_training)
-    #ds.cls = cls_cache
-
-    print('Matching accuracy')
-    for cls, single_acc in zip(classes, accs):
-        print('{} = {:.4f}'.format(cls, single_acc))
-    print('average = {:.4f}'.format(torch.mean(accs)))
-    print('average precision = {:.4f}'.format(torch.mean(accs_prec)))
-    return accs
-def image2tensor(img_dir):
+        s_pred_perm = lap_solver(s_pred, None, l_pts, r_pts)
+    row, col = np.where(s_pred_perm.cpu().numpy()[0] == 1)
+    return row,col
+def image2tensor(img_dir,obj_resize):
     with Image.open(img_dir) as img:
         height = img.height
         width = img.width
         old_size = (width, height)
-        ratio = float(cfg.obj_resize[0]) / max(old_size)
+        ratio = float(obj_resize[0]) / max(old_size)
         new_size = tuple([int(x * ratio) for x in old_size])
         obj = img.resize(new_size, resample=Image.BICUBIC)
-        delta_w = cfg.obj_resize[0] - new_size[0]
-        delta_h = cfg.obj_resize[1] - new_size[1]
+        delta_w = obj_resize[0] - new_size[0]
+        delta_h = obj_resize[1] - new_size[1]
         padding = (delta_w // 2, delta_h // 2, delta_w - (delta_w // 2), delta_h - (delta_h // 2))
         obj = ImageOps.expand(obj, padding)
-        return obj
-def readLines(img_dir,lines_path):
-    img=Image.open(img_dir)
-    height = img.height
-    width = img.width
-    old_size = (width, height)
-    ratio = float(cfg.obj_resize[0]) / max(old_size)
-    new_size = tuple([int(x * ratio) for x in old_size])
-    delta_w = cfg.obj_resize[0] - new_size[0]
-    delta_h = cfg.obj_resize[1] - new_size[1]
+        return obj,(ratio,delta_w,delta_h)
+def readLines(lines_path,params):
+    ratio = params[0]
+    delta_w = params[1]
+    delta_h = params[2]
     keypoint_list = []
     with open(lines_path, "r") as anno:
         all_keypts = anno.readlines()
         all_keypts = [i.split(" ") for i in all_keypts]
         for keypoint in all_keypts:
-            keypoint[1] = float(keypoint[1]) * ratio + delta_w // 2
-            keypoint[3] = float(keypoint[3]) * ratio + delta_w // 2
-            keypoint[2] = float(keypoint[2]) * ratio + delta_h // 2
-            keypoint[4] = float(keypoint[4]) * ratio + delta_h // 2
+            keypoint[0] = float(keypoint[0]) * ratio + delta_w // 2
+            keypoint[2] = float(keypoint[2]) * ratio + delta_w // 2
+            keypoint[1] = float(keypoint[1]) * ratio + delta_h // 2
+            keypoint[3] = float(keypoint[3]) * ratio + delta_h // 2
             keypoint_list.append(keypoint)
     return keypoint_list
+def pts_to_boxes(pt_gt,num):
+    boxes = []
+    for idx in range(num):
+        pts = pt_gt[idx]
+        pt1 = (pts[0], pts[1])
+        pt2 = (pts[2], pts[3])
+        # print pt2[0], pt3[0]
+        angle = 0
+        if (pt1[0] - pt2[0]) != 0:
+            angle = -np.arctan(float(pt1[1] - pt2[1]) / float(pt1[0] - pt2[0])) / 3.1415926 * 180
+        else:
+            angle = 90.0
+
+        if angle < -45.0:
+            angle = angle + 180
+
+        x_ctr = float(pt1[0] + pt2[0]) / 2  # pt1[0] + np.abs(float(pt1[0] - pt3[0])) / 2
+        y_ctr = float(pt1[1] + pt2[1]) / 2  # pt1[1] + np.abs(float(pt1[1] - pt3[1])) / 2
+        width = math.sqrt((pt1[0] - pt2[0]) * (pt1[0] - pt2[0]) + (pt1[1] - pt2[1]) * (pt1[1] - pt2[1]))
+        boxes.append([x_ctr, y_ctr,cfg.EXPAND_REGION,width,angle])
+    boxes=np.array(boxes)
+    return boxes
 if __name__ == '__main__':
-    from utils.dup_stdout_manager import DupStdoutFileManager
-    from utils.parse_args import parse_args
-    from utils.print_easydict import print_easydict
 
-    parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('--cfg', dest='cfg_file', action='append',
-                        help='an optional config file', default=[
-            "/home/mameng/deeplearning/graph-matching/PCA/PCA-GM1/experiments/vgg16_pca_scannet.yaml"], type=str)
-    parser.add_argument('--model', dest='model',
-                        help='model name', default=None, type=str)
-    parser.add_argument('--left_img', dest='dataset',
-                        help='left image name', default=None, type=str)
-    parser.add_argument('--right_img', dest='dataset',
-                        help='right image name', default=None, type=str)
-    parser.add_argument('--left_lines', dest='dataset',
-                        help='left lines name', default=None, type=str)
-    parser.add_argument('--right_lines', dest='dataset',
-                        help='right lines name', default=None, type=str)
-    args = parser.parse_args()
-
-    left_img = Image.open(args.left_img)
-    right_img = Image.open(args.right_img)
+    args = test_parse_args('test')
 
     trans = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(cfg.NORM_MEANS, cfg.NORM_STD)
     ])
 
-
-    left_normimg=image2tensor(left_img)
-    right_normimg=image2tensor(left_img)
-
-
-
-    import importlib
-    mod = importlib.import_module(cfg.MODULE)
+    mod = importlib.import_module('LM.model')
     Net = mod.Net
 
-    torch.manual_seed(cfg.RANDOM_SEED)
-
-    image_dataset = ScannetDataset(cfg.DATASET_FULL_NAME,
-                              sets='test',
-                              length=cfg.EVAL.SAMPLES,
-                              obj_resize=cfg.PAIR.RESCALE,
-                              expand_region=cfg.EXPAND_REGION)
-    dataloader = get_dataloader(image_dataset)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    model = Net(cfg.OUTPUT_SIZE,cfg.SCALES)
+    model = Net(cfg.OUTPUT_SIZE, cfg.SCALES)
     model = model.to(device)
-    model = DataParallel(model, device_ids=cfg.GPUS)
 
-    if not Path(cfg.OUTPUT_PATH).exists():
-        Path(cfg.OUTPUT_PATH).mkdir(parents=True)
-    now_time = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-    with DupStdoutFileManager(str(Path(cfg.OUTPUT_PATH) / ('eval_log_' + now_time + '.log'))) as _:
-        print_easydict(cfg)
-        classes = dataloader.dataset.classes
-        pcks = eval_model(model, dataloader,
-                          eval_epoch=cfg.EVAL.EPOCH if cfg.EVAL.EPOCH != 0 else None,
-                          verbose=True)
+    obj_resize = (800, 800)
+    left_img, left_param = image2tensor(args.left_img, obj_resize)
+    right_img, right_param = image2tensor(args.right_img, obj_resize)
+
+    left_lines = readLines(args.left_lines, left_param)
+    right_lines = readLines(args.right_lines, right_param)
+    n1_pts = len(left_lines)
+    n2_pts = len(right_lines)
+
+    left_boxes = pts_to_boxes(left_lines, n1_pts)
+    right_boxes = pts_to_boxes(right_lines, n2_pts)
+
+    left_boxes = torch.Tensor(left_boxes).unsqueeze(0)
+    right_boxes = torch.Tensor(right_boxes).unsqueeze(0)
+    left_normimg = trans(left_img).unsqueeze(0)
+    right_normimg = trans(right_img).unsqueeze(0)
+
+    n1_pts = torch.tensor(n1_pts).unsqueeze(0)
+    n2_pts = torch.tensor(n2_pts).unsqueeze(0)
+
+    left_id,right_id=eval_model(left_normimg,right_normimg,left_boxes,right_boxes,n1_pts,n2_pts,model,args.model_path)
+    pred_vis(args.left_img,args.right_img,args.left_lines,
+             args.right_lines,left_id,right_id,args.output_path)
+

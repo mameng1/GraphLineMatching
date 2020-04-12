@@ -97,7 +97,7 @@ def train_eval_model(model,
                 loss_pca = criterion(s_pred, perm_mat, n1_gt, n2_gt)
                 loss_marg=margin_loss(match_emb1,match_emb2,perm_mat,n1_gt, n2_gt)
                 loss_edgemarg=marginedge_loss(match_edgeemb1,match_edgeemb2,perm_mat,n1_gt, n2_gt)
-                loss=(loss_marg+loss_edgemarg)*0.5+loss_pca
+                loss=(loss_marg+loss_edgemarg)*0.25+loss_pca
                 loss.backward()
                 optimizer.step()
 

@@ -49,12 +49,8 @@ class Scannet:
         :return: (pair of data, groundtruth permutation matrix)
         """
         dataset_len=len(self.anno_list)
-        #subdir = random.randrange(0, dataset_len)
-        #anno_file = self.anno_path / str(subdir)
-        #annos_list = os.listdir(str(anno_file.absolute()))
 
         anno_pair = []
-        #using_idx=idx
         idx=random.randint(0,dataset_len-1)
         anno_name=self.anno_list[idx]
         img_name=self.img_list[idx]
@@ -84,33 +80,16 @@ class Scannet:
                     row_list.append(i)
                     col_list.append(j)
                     break
-        """
-        weights = np.zeros(perm_mat.shape, dtype=np.float32)
-        rneg_w=len(row_list)/len1
-        cneg_w=len(col_list)/len2
-        rpos_w=1-rneg_w
-        cpos_w=1-cneg_w
-        for idx in row_list:
-            weights[idx,:]=rpos_w
-        for idx in col_list:
-            weights[:,idx]=cpos_w
-        """
-        #print(min(rneg_w,cneg_w))
+
         row_list.sort()
         col_list.sort()
         if(self.sets=="train"):
             for idx in range(len1):
                 if(idx not in row_list):
                     perm_mat[idx,-1]=1
-                    #weights[idx, :]=rneg_w
             for idx in range(len2):
                 if(idx not in col_list):
                     perm_mat[-1,idx]=1
-                    #weights[:, idx] = cneg_w
-        #perm_mat = perm_mat[row_list, :]
-        #perm_mat = perm_mat[:, col_list]
-        #anno_pair[0]['keypoints'] = [anno_pair[0]['keypoints'][i] for i in row_list]
-        #anno_pair[1]['keypoints'] = [anno_pair[1]['keypoints'][j] for j in col_list]
 
         return anno_pair, perm_mat,None
     def select_lines(self,keypoint1,keypoint2):

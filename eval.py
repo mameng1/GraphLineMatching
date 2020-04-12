@@ -55,10 +55,6 @@ def eval_model(model, dataloader, eval_epoch=None, verbose=False):
                 raise ValueError('no valid data key (\'images\' or \'features\') found from dataloader!')
             P1_gt, P2_gt = [_.cuda() for _ in inputs['Ps']]
             n1_gt, n2_gt = [_.cuda() for _ in inputs['ns']]
-            e1_gt, e2_gt = [_.cuda() for _ in inputs['es']]
-            G1_gt, G2_gt = [_.cuda() for _ in inputs['Gs']]
-            H1_gt, H2_gt = [_.cuda() for _ in inputs['Hs']]
-            KG, KH = [_.cuda() for _ in inputs['Ks']]
             perm_mat = inputs['gt_perm_mat'].cuda()
             #src_inliers,tgt_inliers = [_.cuda() for _ in inputs['inliers']]
             batch_num = data1.size(0)
@@ -67,12 +63,9 @@ def eval_model(model, dataloader, eval_epoch=None, verbose=False):
 
             with torch.set_grad_enabled(False):
                 s_pred, pred,match_emb1,match_emb2,match_edgeemb1,match_edgeemb2= \
-                    model(data1, data2, P1_gt, P2_gt, G1_gt, G2_gt, H1_gt, H2_gt, n1_gt, n2_gt, KG, KH, inp_type,train_stage=False)
+                    model(data1, data2, P1_gt, P2_gt, n1_gt, n2_gt,train_stage=False)
 
-            #print("min:{},max:{}".format(torch.min(s_pred).item(), torch.max(s_pred).item()))
             s_pred_perm = lap_solver(s_pred, perm_mat, n1_gt, n2_gt)
-            #if (iter_num == 1):
-            #    pred_vis(data1, data2, P1_gt, P2_gt, s_pred_perm,cfg)
             _, _acc_match_num, _acc_total_num,_acc_totalpred_num = matching_accuracy(s_pred_perm, perm_mat, n1_gt,n2_gt)
             acc_match_num += _acc_match_num
             acc_total_num += _acc_total_num
@@ -126,7 +119,6 @@ if __name__ == '__main__':
 
     model = Net(cfg.OUTPUT_SIZE,cfg.SCALES)
     model = model.to(device)
-    model = DataParallel(model, device_ids=cfg.GPUS)
 
     if not Path(cfg.OUTPUT_PATH).exists():
         Path(cfg.OUTPUT_PATH).mkdir(parents=True)
