@@ -2,9 +2,7 @@ This repository contains the PyTorch implementation of the paper Robust Line Seg
 Convolution Networks.
 
 ## Requirements
-install python3.5.2
-Install pytorch 1.1+
-Install ninja-build: 
+install python3.5.2,pytorch 1.1+,ninja-build: 
 ```setup 
 sudo apt-get install ninja-build
 ```
