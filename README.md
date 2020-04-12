@@ -48,10 +48,5 @@ A example is:
 <center class="half">
     <img src="https://github.com/mameng1/GraphLineMatching/blob/master/test_data/000800.jpg"  width="200"/><img src=https://github.com/mameng1/GraphLineMatching/blob/master/test_data/000900.jpg width="200"/>
 </center>
-left
-<img src="https://github.com/mameng1/GraphLineMatching/blob/master/test_data/000800.jpg" width = "200" height = "300" alt="left" align=center />
 
-right
-<img src="https://github.com/mameng1/GraphLineMatching/blob/master/test_data/000800.jpg" width = "200" height = "300" alt="left" align=center />
-![left:](https://github.com/mameng1/GraphLineMatching/blob/master/test_data/000800.jpg) ![right:](https://github.com/mameng1/GraphLineMatching/blob/master/test_data/000900.jpg) 
 ![result:](https://github.com/mameng1/GraphLineMatching/blob/master/test_data/res.jpg)
