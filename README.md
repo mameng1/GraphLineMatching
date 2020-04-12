@@ -15,8 +15,8 @@ pip install tensorboardX scipy easydict pyyaml
 to train and eval the  network, you should download [Scannet](), and then, you should use the [code]() to pre-process (e.g., generate the grund truth label) the dataset. if you want to augment the dataset, run:
 
 
-```train
-python3 train_eval.py --cfg your_yaml_path
+```aug
+python3 aug_scannet.py
 ```
 
 ## Training
@@ -44,3 +44,6 @@ To view the matching results, run:
 python3 eval.py --cfg your_yaml_path
 ```
 > 📋the Pre-trained Models will be provided when the paper is accepted.
+A example is:
+[left:]() [right:]() 
+[result:]()
