@@ -46,7 +46,9 @@ python3 eval.py --cfg your_yaml_path
 > 📋the Pre-trained Models will be provided when the paper is accepted.
 A example is:
 <center class="half">
-    <img src="https://github.com/mameng1/GraphLineMatching/blob/master/test_data/000800.jpg"  width="200"/><img src=https://github.com/mameng1/GraphLineMatching/blob/master/test_data/000900.jpg width="200"/>
+    <img src="https://github.com/mameng1/GraphLineMatching/blob/master/test_data/000800.jpg"  width="200"/>
+    <img src=https://github.com/mameng1/GraphLineMatching/blob/master/test_data/000900.jpg width="200"/>
+</center>
+<center class="half">
     <img src=https://github.com/mameng1/GraphLineMatching/blob/master/test_data/res.jpg  width="200"/>
-
 </center>
