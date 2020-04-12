@@ -13,7 +13,7 @@ Install python packages:
 pip install tensorboardX scipy easydict pyyaml
 ```
 ## Dataset
-to train and eval the  network, you should download [Scannet](http://www.scan-net.org/), and then, you should use the [code]() to pre-process (e.g., generate the grund truth label) the dataset. if you want to augment the dataset, install:
+To train and eval the network, you should download [Scannet](http://www.scan-net.org/), and then, you should use the [code](https://github.com/mameng1/FindMatchedLine) to pre-process (e.g., generate the grund truth label) the dataset. if you want to augment the dataset, install:
 ```aug_in
 pip install imgaug
 ```
