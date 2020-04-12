@@ -42,9 +42,9 @@ python3 eval.py --cfg your_yaml_path
 To view the matching results, run:
 
 ```vis
-python3 test.py  --cfg experiments/vgg16_scannet.yaml --model_path params_last.pt --left_img test_data/000800.jpg --right_img test_data/000900.jpg --left_lines test_data/000800.txt --right_lines test_data/000900.txt
+python3 test.py --cfg experiments/vgg16_scannet.yaml --model_path params_last.pt --left_img test_data/000800.jpg --right_img test_data/000900.jpg --left_lines test_data/000800.txt --right_lines test_data/000900.txt
 ```
-> 📋the Pre-trained Models will be provided when the paper is accepted.
+> 📋the pre-trained model trained on scannet will be provided when the paper is accepted.
 A example is:
 <center class="half">
     <img src="https://github.com/mameng1/GraphLineMatching/blob/master/test_data/000800.jpg"  width="300" alt="left"/>
