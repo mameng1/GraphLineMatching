@@ -1,5 +1,5 @@
-This repository contains the PyTorch implementation of the paper Robust Line Segments Matching via Graph
-Convolution Networks.
+This repository contains the PyTorch implementation of the paper [Robust Line Segments Matching via Graph
+Convolution Networks](https://arxiv.org/abs/2004.04993).
 
 ## Requirements
 install python3.5.2,pytorch 1.1+,ninja-build: 
