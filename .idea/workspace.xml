@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="46ccea83-6c61-4359-b380-f256169b9e13" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/LM/affinity_layer.py" beforeDir="false" afterPath="$PROJECT_DIR$/LM/affinity_layer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/GATlayer.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/GATlayer.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -30,7 +29,7 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/utils/GATlayer.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="306">
@@ -94,11 +93,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/LM/affinity_layer.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="408">
-              <caret line="22" column="22" selection-start-line="22" selection-start-column="22" selection-end-line="22" selection-end-column="22" />
+            <state relative-caret-position="216">
+              <caret line="23" lean-forward="true" selection-start-line="23" selection-end-line="23" />
               <folding>
                 <element signature="e#0#12#0" expanded="true" />
               </folding>
@@ -139,7 +138,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>keypoint_list</find>
       <find>right_lines</find>
       <find>eval_model</find>
       <find>left_img</find>
@@ -169,6 +167,7 @@
       <find>acc_match_num</find>
       <find>epoch_loss</find>
       <find>learning_feature_x</find>
+      <find>link_num</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -204,8 +203,8 @@
         <option value="$PROJECT_DIR$/utils/evaluation_metric.py" />
         <option value="$PROJECT_DIR$/train_eval.py" />
         <option value="$PROJECT_DIR$/eval.py" />
-        <option value="$PROJECT_DIR$/LM/affinity_layer.py" />
         <option value="$PROJECT_DIR$/utils/GATlayer.py" />
+        <option value="$PROJECT_DIR$/LM/affinity_layer.py" />
       </list>
     </option>
   </component>
@@ -410,15 +409,16 @@
       <workItem from="1584178467364" duration="85581000" />
       <workItem from="1586064992422" duration="1398000" />
       <workItem from="1586506933327" duration="40284000" />
-      <workItem from="1586843388789" duration="13070000" />
+      <workItem from="1586843388789" duration="14218000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="208512000" />
+    <option name="totallyTimeSpent" value="209660000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="65" y="-4" width="1375" height="904" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.4980695" visible="true" weight="0.27088037" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
@@ -750,16 +750,6 @@
     <entry file="file://$PROJECT_DIR$/utils/dup_stdout_manager.py">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/LM/affinity_layer.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="408">
-          <caret line="22" column="22" selection-start-line="22" selection-start-column="22" selection-end-line="22" selection-end-column="22" />
-          <folding>
-            <element signature="e#0#12#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/LM/model.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="288">
@@ -803,6 +793,16 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="306">
           <caret line="62" column="42" lean-forward="true" selection-start-line="62" selection-start-column="42" selection-end-line="62" selection-end-column="42" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/LM/affinity_layer.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="216">
+          <caret line="23" lean-forward="true" selection-start-line="23" selection-end-line="23" />
+          <folding>
+            <element signature="e#0#12#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

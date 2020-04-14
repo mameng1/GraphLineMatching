@@ -44,7 +44,7 @@ class Affinity(nn.Module):
             expand_X[b,b_srcs,:]=X[b,b_srcs,:]
 
             expand_Y[b, b_tgts, :] = Y[b, b_tgts, :]
-            expand_Y[b, ns_tgt[b], :] = self.learning_feature_x
+            expand_Y[b, ns_tgt[b], :] = self.learning_feature_y
             expand_X[b, ns_src[b], :] = self.learning_feature_x
 
         M = torch.matmul(expand_X, (self.A + self.A.transpose(0, 1)) / 2)

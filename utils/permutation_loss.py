@@ -31,6 +31,7 @@ class CrossEntropyLoss(nn.Module):
             loss += F.binary_cross_entropy(
                 pred_perm[b, :(pred_ns[b] + 1), :(gt_ns[b] + 1)],
                 gt_perm[b, :(pred_ns[b] + 1), :(gt_ns[b] + 1)],
+                weight=gt_perm[b, :(pred_ns[b] + 1), :(gt_ns[b] + 1)],
                 reduction='sum')
             n_sum += (pred_ns[b]+1).to(n_sum.dtype).to(pred_perm.device)
         return loss / n_sum
