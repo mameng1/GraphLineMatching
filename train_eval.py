@@ -55,7 +55,8 @@ def train_eval_model(model,
                                                  last_epoch=cfg.TRAIN.START_EPOCH - 1)
     #scheduler.step()
     for epoch in range(start_epoch, num_epochs):
-        print('Epoch {}/{}'.format(epoch, num_epochs - 1))
+        score_thresh = min(epoch * 0.1, 0.6)
+        print('Epoch {}/{},score_thresh {}'.format(epoch, num_epochs - 1, score_thresh))
         print('-' * 10)
 
         model.train()  # Set model to training mode
@@ -88,9 +89,8 @@ def train_eval_model(model,
 
             with torch.set_grad_enabled(True):
                 # forward
-                #print(perm_mat[1,:n1_gt[1],:n2_gt[1]])
-                s_pred, d_pred,match_emb1,match_emb2,match_edgeemb1,match_edgeemb2 = \
-                    model(data1, data2, P1_gt, P2_gt, n1_gt, n2_gt)
+                s_pred, match_emb1, match_emb2, match_edgeemb1, match_edgeemb2, perm_mat, n1_gt, n2_gt = \
+                    model(data1, data2, P1_gt, P2_gt, n1_gt, n2_gt,perm_mat=perm_mat,score_thresh=score_thresh)
 
                 multi_loss = []
 
@@ -131,7 +131,7 @@ def train_eval_model(model,
         print()
 
         # Eval in each epoch
-        accs = eval_model(model, dataloader['test'])
+        accs = eval_model(model, dataloader['test'],train_epoch=epoch)
         acc_dict = {"{}".format(cls): single_acc for cls, single_acc in zip(dataloader['train'].dataset.classes, accs)}
         acc_dict['average'] = torch.mean(accs)
         tfboard_writer.add_scalars(

@@ -25,7 +25,7 @@ class Net(CNN):
         self.l2norm = nn.LocalResponseNorm(cfg.LM.FEATURE_CHANNEL * 2, alpha=cfg.LM.FEATURE_CHANNEL * 2, beta=0.5, k=0)
         self.gnn_layer = cfg.LM.GNN_LAYER
         self.feature_channel=cfg.LM.FEATURE_CHANNEL
-        gauss_k = cv2.getGaussianKernel(output_size[0], 1.5, cv2.CV_32F)
+        gauss_k = cv2.getGaussianKernel(output_size[0], 0.5, cv2.CV_32F)
         gauss_k=gauss_k/np.linalg.norm(gauss_k)
         self.gauss_k=torch.from_numpy(gauss_k).cuda()
         self.gauss_k = self.gauss_k.unsqueeze(dim=0)
@@ -58,7 +58,7 @@ class Net(CNN):
             )
         self.poolers = nn.ModuleList(self.pyramid_linepooling)
 
-    def forward(self, src, tgt, P_src, P_tgt, ns_src, ns_tgt, train_stage=True):
+    def forward(self, src, tgt, P_src, P_tgt, ns_src, ns_tgt, train_stage=True,perm_mat=None,score_thresh=None):
         # extract feature
         src_node = self.node_layers(src)
         src_edge = self.edge_layers(src_node)
@@ -75,6 +75,13 @@ class Net(CNN):
         F_src = self.line_feature_align(src_edge, P_src, ns_src, 2)
         U_tgt = self.line_feature_align(tgt_node, P_tgt, ns_tgt, 1)
         F_tgt = self.line_feature_align(tgt_edge, P_tgt, ns_tgt, 3)
+
+        ns_src_bk = ns_src
+        ns_tgt_bk = ns_tgt
+        U_src, U_tgt, F_src, F_tgt, ns_src, ns_tgt, indeces1, indeces2 \
+            = self.filterOutlier(U_src, U_tgt, F_src, F_tgt, ns_src, ns_tgt, score_thresh)
+        if (train_stage):
+            perm_mat = self.update_perm(indeces1, indeces2, ns_src_bk, ns_tgt_bk, perm_mat)
 
         # adjacency matrices
         emb1, emb2 = torch.cat((U_src, F_src), dim=1).transpose(1, 2), torch.cat((U_tgt, F_tgt), dim=1).transpose(1, 2)
@@ -105,8 +112,10 @@ class Net(CNN):
                 emb2_new = cross_graph(torch.cat((emb2, torch.bmm(s.transpose(1,2), emb1)), dim=-1))
                 emb1 = emb1_new
                 emb2 = emb2_new
-
-        return s, None,match_emb1,match_emb2,match_edgeemb1,match_edgeemb2
+        if (train_stage):
+            return s, match_emb1, match_emb2, match_edgeemb1, match_edgeemb2, perm_mat, ns_src, ns_tgt
+        else:
+            return s, indeces1, indeces2, ns_src, ns_tgt
     def line_feature_align(self,raw_feature, P, ns_t, layer_idx,device=None):
         if device is None:
             device = raw_feature.device
@@ -142,3 +151,109 @@ class Net(CNN):
             F[idx,:,0:n]=mean_features[:,base_idx:base_idx + n]
             base_idx=base_idx+n
         return F
+    def filterOutlier(self, low_emb1,low_emb2,high_emb1,high_emb2,ns_src, ns_tgt,score_thresh):
+        #low_emb1 = F.normalize(low_emb1,dim=1)
+        #low_emb2 = F.normalize(low_emb2, dim=1)
+        #high_emb1 = F.normalize(high_emb1,dim=1)
+        #high_emb2 = F.normalize(high_emb2,dim=1)
+
+        score_low = torch.matmul(low_emb1.transpose(1,2),low_emb2)
+        score_high = torch.matmul(high_emb1.transpose(1,2),high_emb2)
+
+        batch_size = low_emb1.shape[0]
+
+        lemb1_new, lemb2_new = [], []
+        hemb1_new, hemb2_new = [], []
+
+        ns_src_new = torch.zeros_like(ns_src)
+        ns_tgt_new = torch.zeros_like(ns_tgt)
+        indeces1,indeces2=[],[]
+        for b in range(batch_size):
+            lrow_max_v,_=torch.max(score_low[b,:ns_src[b],:ns_tgt[b]],dim=1)
+            lcol_max_v,_=torch.max(score_low[b,:ns_tgt[b],:ns_tgt[b]],dim=0)
+
+            hrow_max_v, _ = torch.max(score_high[b, :ns_src[b], :ns_tgt[b]], dim=1)
+            hcol_max_v, _ = torch.max(score_high[b, :ns_tgt[b], :ns_tgt[b]], dim=0)
+
+            row_max_i=torch.where((lrow_max_v>score_thresh)&(hrow_max_v>(2*score_thresh/3)))[0]
+            col_max_i=torch.where((lcol_max_v>score_thresh)&(hcol_max_v>(2*score_thresh/3)))[0]
+
+            indeces1.append(row_max_i)
+            indeces2.append(col_max_i)
+
+            lrows_elem=torch.index_select(low_emb1[b],1,row_max_i)
+            lcols_elem=torch.index_select(low_emb2[b],1,col_max_i)
+
+            hrows_elem = torch.index_select(high_emb1[b], 1, row_max_i)
+            hcols_elem = torch.index_select(high_emb2[b], 1, col_max_i)
+
+            lemb1_new.append(lrows_elem)
+            lemb2_new.append(lcols_elem)
+
+            hemb1_new.append(hrows_elem)
+            hemb2_new.append(hcols_elem)
+
+            ns_src_new[b]=len(row_max_i)
+            ns_tgt_new[b]=len(col_max_i)
+
+        lemb1_new = self.pad_tensor(lemb1_new)
+        lemb2_new = self.pad_tensor(lemb2_new)
+
+        lemb1_new = torch.stack(lemb1_new, dim=0)
+        lemb2_new = torch.stack(lemb2_new, dim=0)
+
+        hemb1_new = self.pad_tensor(hemb1_new)
+        hemb2_new = self.pad_tensor(hemb2_new)
+
+        hemb1_new = torch.stack(hemb1_new, dim=0)
+        hemb2_new = torch.stack(hemb2_new, dim=0)
+
+        return lemb1_new,lemb2_new,hemb1_new,hemb2_new,ns_src_new,ns_tgt_new,indeces1,indeces2
+    def pad_tensor(self, inp):
+        assert type(inp[0]) == torch.Tensor
+        it = iter(inp)
+        t = next(it)
+        max_shape = list(t.shape)
+        while True:
+            try:
+                t = next(it)
+                for i in range(len(max_shape)):
+                    max_shape[i] = int(max(max_shape[i], t.shape[i]))
+            except StopIteration:
+                break
+        max_shape = np.array(max_shape)
+
+        padded_ts = []
+        for t in inp:
+            pad_pattern = np.zeros(2 * len(max_shape), dtype=np.int64)
+            pad_pattern[::-2] = max_shape - np.array(t.shape)
+            pad_pattern = tuple(pad_pattern.tolist())
+            padded_ts.append(F.pad(t, pad_pattern, 'constant', 0))
+
+        return padded_ts
+    def update_perm(self,indeces1,indeces2,ns_src,ns_tgt,perm_gt):
+        batch_size = len(indeces1)
+        update_perm_list=[]
+        for b in range(batch_size):
+            batch_indeces1 = indeces1[b]
+            batch_indeces2 = indeces2[b]
+
+            len1 = len(batch_indeces1)
+            len2 = len(batch_indeces2)
+            b_indecesn1 = torch.zeros((len1 + 1), dtype=torch.long, device=ns_src.device)
+            b_indecesn1[:len1] = batch_indeces1
+            b_indecesn1[len1] = ns_src[b]
+
+            b_indecesn2 = torch.zeros((len2 + 1), dtype=torch.long, device=ns_src.device)
+            b_indecesn2[:len2] = batch_indeces2
+            b_indecesn2[len2] = ns_tgt[b]
+
+            batch_perm=perm_gt[b]
+            batch_perm=batch_perm[b_indecesn1,:]
+            batch_perm=batch_perm[:,b_indecesn2]
+            update_perm_list.append(batch_perm)
+
+        perm = self.pad_tensor(update_perm_list)
+
+        perm = torch.stack(perm, dim=0)
+        return perm

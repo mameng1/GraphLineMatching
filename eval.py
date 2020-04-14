@@ -10,7 +10,7 @@ from utils.model_sl import load_model
 from utils.config import cfg
 from data.scannet_load import ScannetDataset,get_dataloader
 
-def eval_model(model, dataloader, eval_epoch=None, verbose=False):
+def eval_model(model, dataloader, eval_epoch=None, verbose=False,train_epoch=None):
     print('Start evaluation...')
     since = time.time()
 
@@ -20,7 +20,11 @@ def eval_model(model, dataloader, eval_epoch=None, verbose=False):
         model_path = str(Path(cfg.OUTPUT_PATH) / 'params' / 'params_{:04}.pt'.format(eval_epoch))
         print('Loading model parameters from {}'.format(model_path))
         load_model(model, model_path)
-
+        score_thresh = min(eval_epoch * 0.1, 0.6)
+        print("score_thresh{}".format(score_thresh))
+    if train_epoch is not None:
+        score_thresh = min(train_epoch * 0.1, 0.6)
+        print("score_thresh{}".format(score_thresh))
     was_training = model.training
     model.eval()
 
@@ -62,10 +66,10 @@ def eval_model(model, dataloader, eval_epoch=None, verbose=False):
             iter_num = iter_num + 1
 
             with torch.set_grad_enabled(False):
-                s_pred, pred,match_emb1,match_emb2,match_edgeemb1,match_edgeemb2= \
-                    model(data1, data2, P1_gt, P2_gt, n1_gt, n2_gt,train_stage=False)
+                s_pred,indeces1,indeces2,newn1_gt,newn2_gt= \
+                    model(data1, data2, P1_gt, P2_gt, n1_gt, n2_gt,train_stage=False,perm_mat=perm_mat,score_thresh=score_thresh)
 
-            s_pred_perm = lap_solver(s_pred, perm_mat, n1_gt, n2_gt)
+            s_pred_perm = lap_solver(s_pred, newn1_gt, newn2_gt, indeces1, indeces2, n1_gt, n2_gt)
             _, _acc_match_num, _acc_total_num,_acc_totalpred_num = matching_accuracy(s_pred_perm, perm_mat, n1_gt,n2_gt)
             acc_match_num += _acc_match_num
             acc_total_num += _acc_total_num
