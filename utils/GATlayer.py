@@ -48,6 +48,7 @@ class GraphAttentionLayer(nn.Module):
 
         zero_vec = torch.zeros_like(e)
         attention = self.relu(e)
+        attention = torch.where(attention > 0, attention, zero_vec)
 
         topk_attention=torch.zeros_like(attention)
         base_num=torch.ones((1,))*2

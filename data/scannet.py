@@ -40,6 +40,7 @@ class Scannet:
             img_list=f.readlines()
             img_list=[item.strip() for item in img_list]
             self.img_list=img_list
+        self.length=len(self.img_list)
 
     def get_pair(self, idx,cls=None, shuffle=True):
         """
@@ -49,9 +50,10 @@ class Scannet:
         :return: (pair of data, groundtruth permutation matrix)
         """
         dataset_len=len(self.anno_list)
-
+        if (self.sets == "train"):
+            idx = random.randint(0, dataset_len - 1)
         anno_pair = []
-        idx=random.randint(0,dataset_len-1)
+        #idx=random.randint(0,dataset_len-1)
         anno_name=self.anno_list[idx]
         img_name=self.img_list[idx]
         annos_list=anno_name.split(" ")

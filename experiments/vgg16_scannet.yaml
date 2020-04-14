@@ -44,7 +44,7 @@ TRAIN:
   
 # Evaluation settings and PCK metric
 EVAL:
-  EPOCH: 4  # epoch to be tested
+  EPOCH: 6  # epoch to be tested
   SAMPLES: 1000  # number of tested pairs for each class
 
 LM:

@@ -40,18 +40,20 @@ class Scannet:
             img_list=f.readlines()
             img_list=[item.strip() for item in img_list]
             self.img_list=img_list
-
-    def get_pair(self, cls=None, shuffle=True):
+        self.length = len(self.img_list)
+    def get_pair(self, idx,cls=None, shuffle=True):
         """
         Randomly get a pair of objects from VOC-Berkeley keypoints dataset
         :param cls: None for random class, or specify for a certain set
         :param shuffle: random shuffle the keypoints
         :return: (pair of data, groundtruth permutation matrix)
         """
-        dataset_len=len(self.anno_list)
-      
+        #dataset_len=len(self.anno_list)
+        dataset_len = len(self.anno_list)
+        if (self.sets == "train"):
+            idx = random.randint(0, dataset_len - 1)
         anno_pair = []
-        idx=random.randint(0,dataset_len-1)
+        #idx=random.randint(0,dataset_len-1)
         anno_dir=self.anno_list[idx]
         img_dir=self.img_list[idx]
         img_list=os.listdir(img_dir)

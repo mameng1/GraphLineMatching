@@ -29,7 +29,6 @@ def train_eval_model(model,
 
     since = time.time()
     dataset_size = len(dataloader['train'].dataset)
-    lap_solver = hungarian
 
     device = next(model.parameters()).device
     print('model on device: {}'.format(device))
@@ -55,7 +54,7 @@ def train_eval_model(model,
                                                  last_epoch=cfg.TRAIN.START_EPOCH - 1)
     #scheduler.step()
     for epoch in range(start_epoch, num_epochs):
-        score_thresh = min(epoch * 0.1, 0.6)
+        score_thresh = min(epoch * 0.1, 0.5)
         print('Epoch {}/{},score_thresh {}'.format(epoch, num_epochs - 1, score_thresh))
         print('-' * 10)
 
@@ -70,14 +69,8 @@ def train_eval_model(model,
 
         # Iterate over data.
         for inputs in dataloader['train']:
-            if 'images' in inputs:
-                data1, data2 = [_.cuda() for _ in inputs['images']]
-                inp_type = 'img'
-            elif 'features' in inputs:
-                data1, data2 = [_.cuda() for _ in inputs['features']]
-                inp_type = 'feat'
-            else:
-                raise ValueError('no valid data key (\'images\' or \'features\') found from dataloader!')
+
+            data1, data2 = [_.cuda() for _ in inputs['images']]
             P1_gt, P2_gt = [_.cuda() for _ in inputs['Ps']]
             n1_gt, n2_gt = [_.cuda() for _ in inputs['ns']]
             perm_mat = inputs['gt_perm_mat'].cuda()
@@ -128,15 +121,14 @@ def train_eval_model(model,
         torch.save(optimizer.state_dict(), str(checkpoint_path / 'optim_{:04}.pt'.format(epoch + 1)))
 
         print('Epoch {:<4} Loss: {:.4f}'.format(epoch, epoch_loss))
-        print()
 
         # Eval in each epoch
-        accs = eval_model(model, dataloader['test'],train_epoch=epoch)
-        acc_dict = {"{}".format(cls): single_acc for cls, single_acc in zip(dataloader['train'].dataset.classes, accs)}
-        acc_dict['average'] = torch.mean(accs)
+        recalls = eval_model(model, dataloader['test'],train_epoch=epoch)
+        recall_dict = {"{}".format(cls): single_acc for cls, single_acc in zip(dataloader['train'].dataset.classes, accs)}
+        recall_dict['average'] = torch.mean(recalls)
         tfboard_writer.add_scalars(
-            'Eval acc',
-            acc_dict,
+            'Eval recall',
+            recall_dict,
             (epoch + 1) * cfg.TRAIN.EPOCH_ITERS
         )
 
@@ -182,7 +174,6 @@ if __name__ == '__main__':
     criterion = CrossEntropyLoss()
 
     optimizer = optim.SGD(model.parameters(), lr=cfg.TRAIN.LR, momentum=cfg.TRAIN.MOMENTUM, nesterov=True)
-    model = DataParallel(model, device_ids=cfg.GPUS)
 
     if not Path(cfg.OUTPUT_PATH).exists():
         Path(cfg.OUTPUT_PATH).mkdir(parents=True)

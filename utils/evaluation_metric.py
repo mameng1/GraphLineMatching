@@ -69,7 +69,7 @@ def matching_accuracy(pmat_pred, pmat_gt, ns,nt):
         match_num += torch.sum(pmat_pred[b, :ns[b],:nt[b]] * pmat_gt[b, :ns[b],:nt[b]])
         total_num += torch.sum(pmat_gt[b, :ns[b],:nt[b]])
         total_pred_num += torch.sum(pmat_pred[b, :ns[b],:nt[b]])
-    return match_num / total_num, match_num, total_num,total_pred_num
+    return match_num, total_num,total_pred_num
 
 
 def objective_score(pmat_pred, affmtx, ns):

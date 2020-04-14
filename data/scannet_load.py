@@ -15,7 +15,10 @@ class ScannetDataset(Dataset):
     def __init__(self, name, length, expand_region,cls=None, **args):
         self.name = name
         self.ds = eval(self.name)(**args)
-        self.length = length  
+        if (self.ds.sets == "train"):
+            self.length = length
+        else:
+            self.length = self.ds.length
         self.obj_size = self.ds.obj_resize
         self.expand_region=expand_region
         self.classes=self.ds.classes
@@ -156,7 +159,7 @@ def worker_init_rand(worker_id):
     np.random.seed(torch.initial_seed() % 2 ** 32)
 
 
-def get_dataloader(dataset, fix_seed=True, shuffle=False):
+def get_dataloader(dataset, fix_seed=True, shuffle=True):
     return torch.utils.data.DataLoader(
         dataset, batch_size=cfg.BATCH_SIZE, shuffle=shuffle, num_workers=cfg.DATALOADER_NUM, collate_fn=collate_fn,
         pin_memory=False, worker_init_fn=worker_init_fix if fix_seed else worker_init_rand
