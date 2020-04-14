@@ -53,15 +53,17 @@ class GraphAttentionLayer(nn.Module):
         topk_attention=torch.zeros_like(attention)
         base_num=torch.ones((1,))*2
         base_ratio=torch.ones((1))*0.08
+        scale_value=torch.zeros((batch_size,1,1),device=attention.device)
         for b in range(batch_size):
             battention=attention[b]
             ratio=torch.max(0.28/np.power(base_num,self.layer_id),base_ratio)
             link_num = n_src[b] * ratio[0]
+            scale_value[b,0,0]=1/link_num
             valuem, index = torch.topk(battention, link_num.long(), dim=-1)
             btopk_attention=torch.zeros_like(battention)
             btopk_attention.scatter_(1, index, valuem)
             topk_attention[b]=btopk_attention
-        attention = (1.0/3.0)*torch.tanh(topk_attention)
+        attention = scale_value*torch.tanh(topk_attention)
         return attention
 
     def __repr__(self):
