@@ -88,9 +88,13 @@ def train_eval_model(model,
                 multi_loss = []
 
                 loss_pca = criterion(s_pred, perm_mat, n1_gt, n2_gt)
-                loss_marg=margin_loss(match_emb1,match_emb2,perm_mat,n1_gt, n2_gt)
-                loss_edgemarg=marginedge_loss(match_edgeemb1,match_edgeemb2,perm_mat,n1_gt, n2_gt)
-                loss=(loss_marg+loss_edgemarg)*0.25+loss_pca
+                loss_marg1=margin_loss(match_emb1,match_emb2,perm_mat,n1_gt, n2_gt)
+                loss_marg2 = margin_loss(match_emb2, match_emb1, perm_mat.transpose(1,2), n2_gt, n1_gt)
+
+                loss_edgemarg1=marginedge_loss(match_edgeemb1,match_edgeemb2,perm_mat,n1_gt, n2_gt)
+                loss_edgemarg2 = marginedge_loss(match_edgeemb2, match_edgeemb1, perm_mat.transpose(1,2), n2_gt, n1_gt)
+
+                loss=(loss_marg1+loss_marg2+loss_edgemarg1+loss_edgemarg2)*0.5*0.25+loss_pca
                 loss.backward()
                 optimizer.step()
 
