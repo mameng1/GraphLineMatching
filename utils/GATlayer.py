@@ -56,7 +56,7 @@ class GraphAttentionLayer(nn.Module):
         scale_value=torch.zeros((batch_size,1,1),device=attention.device)
         for b in range(batch_size):
             battention=attention[b]
-            ratio=torch.max(0.28/np.power(base_num,self.layer_id),base_ratio)
+            ratio=torch.max(0.4/np.power(base_num,self.layer_id),base_ratio)
             link_num = n_src[b] * ratio[0]
             scale_value[b,0,0]=1/link_num
             valuem, index = torch.topk(battention, link_num.long(), dim=-1)
@@ -68,7 +68,7 @@ class GraphAttentionLayer(nn.Module):
             zeros_t = torch.zeros_like(btopk_attention)
             label_m = torch.where(btopk_attention > 0, ones_t, zeros_t)
             topk_attention[b] = btopk_attention * label_m.transpose(0, 1)
-            
+
         attention = scale_value*torch.tanh(topk_attention)
         return attention
 
