@@ -70,8 +70,8 @@ def hungarian(s: torch.Tensor,n1, n2,indeces1,indeces2,on1,on2):
             cur_score=score_region[row_idx,col_idx]
             last_cols=score_region[row_idx,-1]
             last_rows=score_region[-1,col_idx]
-            if((0.9*cur_score<last_cols) or
-               (0.9*cur_score<last_rows)):
+            if((cur_score<last_cols) or
+               (cur_score<last_rows)):
                 result[row_idx,col_idx]=0
 
         new_row,new_col=np.where(result==1)

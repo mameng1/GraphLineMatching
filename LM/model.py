@@ -32,7 +32,7 @@ class Net(CNN):
         self.gauss_k = self.gauss_k.unsqueeze(dim=0)
         self.gauss_k = self.gauss_k.unsqueeze(dim=1)
         self.gauss_k = None#self.gauss_k.contiguous()
-        self.pos_layer = PosFeatureLayer(4, cfg.PCA.FEATURE_CHANNEL * 2)
+        self.pos_layer = PosFeatureLayer(4, cfg.LM.FEATURE_CHANNEL * 2)
         for i in range(self.gnn_layer):
             if i == 0:
                 gnn_layer = Siamese_Gconv(cfg.LM.FEATURE_CHANNEL * 2, cfg.LM.GNN_FEAT)
