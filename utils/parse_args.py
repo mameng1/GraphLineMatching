@@ -47,22 +47,22 @@ def test_parse_args(description):
                         default="experiments/vgg16_scannet.yaml")
     parser.add_argument('--model_path', dest='model_path',
                         help='model name',
-                        default='output/vgg16_linematching_wire/params/params_0004.pt', type=str)
+                        default='output/vgg16_linematching_wire/params/params_0006.pt', type=str)
     parser.add_argument('--left_img', dest='left_img',
                         help='left image name',
-                        default='test_data/000800.jpg',
+                        default='/home/mameng/dataset/scannet/scannet_frames_25k/scene0696_01/color/000600.jpg',
                         type=str)
     parser.add_argument('--right_img', dest='right_img',
                         help='right image name',
-                        default='test_data/000900.jpg',
+                        default='/home/mameng/dataset/scannet/scannet_frames_25k/scene0696_01/color/001300.jpg',
                         type=str)
     parser.add_argument('--left_lines', dest='left_lines',
                         help='left lines name',
-                        default='test_data/000800.txt',
+                        default='/home/mameng/dataset/scannet/scannet_frames_25kjj/scene0696_01/line09_nms/000600.txt',
                         type=str)
     parser.add_argument('--right_lines', dest='right_lines',
                         help='right lines name',
-                        default='test_data/000900.txt',
+                        default='/home/mameng/dataset/scannet/scannet_frames_25kjj/scene0696_01/line09_nms/001300.txt',
                         type=str)
     parser.add_argument('--output_path', dest='output_path',
                         help='output path name',

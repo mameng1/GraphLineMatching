@@ -60,8 +60,11 @@ class GraphAttentionLayer(nn.Module):
             link_num = n_src[b] * ratio[0]
             scale_value[b,0,0]=1/link_num
             valuem, index = torch.topk(battention, link_num.long(), dim=-1)
+
             btopk_attention=torch.zeros_like(battention)
             btopk_attention.scatter_(1, index, valuem)
+            btopk_attention=btopk_attention*btopk_attention.transpose(0,1)
+
             topk_attention[b]=btopk_attention
         attention = scale_value*torch.tanh(topk_attention)
         return attention

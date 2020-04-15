@@ -8,6 +8,7 @@ from LM.gconv import Siamese_Gconv
 from LM.affinity_layer import Affinity
 from extension.line_alignpooling.linepool_align import LinePoolAlign
 from utils.config import cfg
+from utils.pos_feature import PosFeatureLayer
 import cv2
 import numpy as np
 import math
@@ -31,7 +32,7 @@ class Net(CNN):
         self.gauss_k = self.gauss_k.unsqueeze(dim=0)
         self.gauss_k = self.gauss_k.unsqueeze(dim=1)
         self.gauss_k = None#self.gauss_k.contiguous()
-
+        self.pos_layer = PosFeatureLayer(4, cfg.PCA.FEATURE_CHANNEL * 2)
         for i in range(self.gnn_layer):
             if i == 0:
                 gnn_layer = Siamese_Gconv(cfg.LM.FEATURE_CHANNEL * 2, cfg.LM.GNN_FEAT)
@@ -85,6 +86,8 @@ class Net(CNN):
 
         # adjacency matrices
         emb1, emb2 = torch.cat((U_src, F_src), dim=1).transpose(1, 2), torch.cat((U_tgt, F_tgt), dim=1).transpose(1, 2)
+        emb1 = self.pos_layer(emb1, ns_src, P_src, indeces1, src.shape)
+        emb2 = self.pos_layer(emb2, ns_tgt, P_tgt, indeces2, tgt.shape)
 
         match_emb1=U_src.transpose(1,2)
         match_emb2=U_tgt.transpose(1,2)
