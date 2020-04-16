@@ -37,13 +37,13 @@ class Net(CNN):
             if i == 0:
                 gnn_layer = Siamese_Gconv(cfg.LM.FEATURE_CHANNEL * 2, cfg.LM.GNN_FEAT)
                 adjacA = GraphAttentionLayer(cfg.LM.FEATURE_CHANNEL * 2, 16, 0.8, 0.2,3,i)
-                adjacB = GraphAttentionLayer(cfg.LM.FEATURE_CHANNEL * 2, 16, 0.8, 0.2,3,i)
+                #adjacB = GraphAttentionLayer(cfg.LM.FEATURE_CHANNEL * 2, 16, 0.8, 0.2,3,i)
             else:
                 gnn_layer = Siamese_Gconv(cfg.LM.GNN_FEAT, cfg.LM.GNN_FEAT)
                 adjacA = GraphAttentionLayer(cfg.LM.GNN_FEAT, 16, 0.8, 0.2,3,i)
-                adjacB = GraphAttentionLayer(cfg.LM.GNN_FEAT, 16, 0.8, 0.2,3,i)
+                #adjacB = GraphAttentionLayer(cfg.LM.GNN_FEAT, 16, 0.8, 0.2,3,i)
             self.add_module('adjacA_{}'.format(i), adjacA)
-            self.add_module('adjacB_{}'.format(i), adjacB)
+            #self.add_module('adjacB_{}'.format(i), adjacB)
             self.add_module('gnn_layer_{}'.format(i), gnn_layer)
             self.add_module('affinity_{}'.format(i), Affinity(cfg.LM.GNN_FEAT))
             if i == self.gnn_layer - 2:  # only second last layer will have cross-graph module
@@ -96,8 +96,8 @@ class Net(CNN):
         for i in range(self.gnn_layer):
             adjacA=getattr(self, 'adjacA_{}'.format(i))
             A_src = adjacA(emb1, ns_src, ns_src)
-            adjacB = getattr(self, 'adjacB_{}'.format(i))
-            A_tgt = adjacB(emb2, ns_tgt, ns_tgt)
+            #adjacB = getattr(self, 'adjacB_{}'.format(i))
+            A_tgt = adjacA(emb2, ns_tgt, ns_tgt)
 
             gnn_layer = getattr(self, 'gnn_layer_{}'.format(i))
             emb1, emb2 = gnn_layer([A_src, emb1], [A_tgt, emb2])

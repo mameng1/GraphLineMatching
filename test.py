@@ -6,7 +6,6 @@ import argparse
 from utils.parse_args import test_parse_args
 import math
 import random
-import os
 from utils.hungarian import hungarian
 from utils.evaluation_metric import matching_accuracy
 from parallel import DataParallel
@@ -23,24 +22,20 @@ def mergeImg(limg,rimg,edge_w=50):
     result.paste(limg, box=(0, 0))
     result.paste(rimg, box=(width+edge_w, 0))
     return result
-def pred_vis(limg_path,rimg_path,lline_path,rline_path,left_idx,right_idx,output_path,idx):
+def pred_vis(limg_path,rimg_path,lline_path,rline_path,left_idx,right_idx,output_path):
     left_image=Image.open(limg_path)
     right_image=Image.open(rimg_path)
 
     left_lines=readLines(lline_path,(1,0,0))
     right_lines=readLines(rline_path,(1,0,0))
-
-
-    draw_lest = ImageDraw.Draw(left_image)
-    for line in left_lines:
-        draw_lest.line((line[0],line[1],line[2],line[3]),fill=(255,255,255),width=5)
-    #left_image.show()
-
-
+    """
+    draw_left = ImageDraw.Draw(left_image)
     draw_right = ImageDraw.Draw(right_image)
+    for line in left_lines:
+        draw_left.line((line[0], line[1], line[2], line[3]), fill=(255, 255, 255), width=5)
     for line in right_lines:
         draw_right.line((line[0], line[1], line[2], line[3]), fill=(255, 255, 255), width=5)
-    #right_image.show()
+    """
     res=mergeImg(left_image,right_image,50)
     width,height=left_image.size
     res_draw=ImageDraw.Draw(res)
@@ -59,9 +54,8 @@ def pred_vis(limg_path,rimg_path,lline_path,rline_path,left_idx,right_idx,output
         # cv2.putText(limg,"{}".format(lidx),(lcx,lcy),cv2.FONT_HERSHEY_SIMPLEX,0.9,color,2)
         # cv2.putText(rimg, "{}".format(ridx), (rcx, rcy), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
     #res.show()
-    save_name="{}.png".format(idx)
-    res.save(output_path+save_name)
-    debug=0
+    res.save(output_path+"res.png")
+
 
 def eval_model(l_img,r_img,l_boxes,r_boxes,l_pts,r_pts,model,model_path):
 
@@ -153,46 +147,26 @@ if __name__ == '__main__':
     model = Net(cfg.OUTPUT_SIZE, cfg.SCALES)
     model = model.to(device)
 
-    imgs_path="/home/mameng/dataset/scannet/datadir_line09nms/val_img.txt"
-    imgs_file=open(imgs_path,"r")
-    imgs_list=imgs_file.readlines()
-    for idx,imgs in enumerate(imgs_list):
-        left_ipath,right_ipath=imgs.strip().split(" ")
-        left_lpath=left_ipath.replace("scannet_frames_25k","scannet_frames_25kjj")
-        left_lpath=left_lpath.replace("color","line09_nms")
-        left_lpath = left_lpath.replace(".jpg", ".txt")
+    obj_resize = (800, 800)
+    left_img, left_param = image2tensor(args.left_img, obj_resize)
+    right_img, right_param = image2tensor(args.right_img, obj_resize)
 
-        right_lpath = right_ipath.replace("scannet_frames_25k", "scannet_frames_25kjj")
-        right_lpath = right_lpath.replace("color", "line09_nms")
-        right_lpath = right_lpath.replace(".jpg", ".txt")
-        if(not os.path.exists(right_lpath)):
-            continue
-        args.left_img=left_ipath
-        args.right_img=right_ipath
-        args.left_lines=left_lpath
-        args.right_lines=right_lpath
+    left_lines = readLines(args.left_lines, left_param)
+    right_lines = readLines(args.right_lines, right_param)
+    n1_pts = len(left_lines)
+    n2_pts = len(right_lines)
 
-        obj_resize = (800, 800)
-        left_img, left_param = image2tensor(args.left_img, obj_resize)
-        right_img, right_param = image2tensor(args.right_img, obj_resize)
+    left_boxes = pts_to_boxes(left_lines, n1_pts)
+    right_boxes = pts_to_boxes(right_lines, n2_pts)
 
-        left_lines = readLines(args.left_lines, left_param)
-        right_lines = readLines(args.right_lines, right_param)
-        n1_pts = len(left_lines)
-        n2_pts = len(right_lines)
+    left_boxes = torch.Tensor(left_boxes).unsqueeze(0)
+    right_boxes = torch.Tensor(right_boxes).unsqueeze(0)
+    left_normimg = trans(left_img).unsqueeze(0)
+    right_normimg = trans(right_img).unsqueeze(0)
 
-        left_boxes = pts_to_boxes(left_lines, n1_pts)
-        right_boxes = pts_to_boxes(right_lines, n2_pts)
+    n1_pts = torch.tensor(n1_pts).unsqueeze(0)
+    n2_pts = torch.tensor(n2_pts).unsqueeze(0)
 
-        left_boxes = torch.Tensor(left_boxes).unsqueeze(0)
-        right_boxes = torch.Tensor(right_boxes).unsqueeze(0)
-        left_normimg = trans(left_img).unsqueeze(0)
-        right_normimg = trans(right_img).unsqueeze(0)
-
-        n1_pts = torch.tensor(n1_pts).unsqueeze(0)
-        n2_pts = torch.tensor(n2_pts).unsqueeze(0)
-
-        left_id,right_id=eval_model(left_normimg,right_normimg,left_boxes,right_boxes,n1_pts,n2_pts,model,args.model_path)
-        pred_vis(args.left_img,args.right_img,args.left_lines,
-                 args.right_lines,left_id,right_id,args.output_path,idx)
-
+    left_id,right_id=eval_model(left_normimg,right_normimg,left_boxes,right_boxes,n1_pts,n2_pts,model,args.model_path)
+    pred_vis(args.left_img,args.right_img,args.left_lines,
+             args.right_lines,left_id,right_id,args.output_path)
