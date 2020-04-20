@@ -52,7 +52,7 @@ class GraphAttentionLayer(nn.Module):
 
         topk_attention=torch.zeros_like(attention)
         base_num=torch.ones((1,))*2
-        base_ratio=torch.ones((1))*0.08
+        base_ratio=torch.ones((1))*0.1
         scale_value=torch.zeros((batch_size,1,1),device=attention.device)
         for b in range(batch_size):
             battention=attention[b]
