@@ -19,7 +19,7 @@ class Affinity(nn.Module):
         self.A = Parameter(Tensor(self.d, self.d))
 
         self.learning_feature_x = Parameter(torch.Tensor(self.d))
-        self.learning_feature_y = Parameter(torch.Tensor(self.d))
+        #self.learning_feature_y = Parameter(torch.Tensor(self.d))
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -28,7 +28,7 @@ class Affinity(nn.Module):
         self.A.data += torch.eye(self.d)
 
         self.learning_feature_x.data.uniform_(-stdv, stdv)
-        self.learning_feature_y.data.uniform_(-stdv, stdv)
+        #self.learning_feature_y.data.uniform_(-stdv, stdv)
 
     def forward(self, X, Y,ns_src, ns_tgt):
 
@@ -44,7 +44,7 @@ class Affinity(nn.Module):
             expand_X[b,b_srcs,:]=X[b,b_srcs,:]
 
             expand_Y[b, b_tgts, :] = Y[b, b_tgts, :]
-            expand_Y[b, ns_tgt[b], :] = self.learning_feature_y
+            expand_Y[b, ns_tgt[b], :] = self.learning_feature_x
             expand_X[b, ns_src[b], :] = self.learning_feature_x
 
         M = torch.matmul(expand_X, (self.A + self.A.transpose(0, 1)) / 2)
