@@ -20,7 +20,7 @@ class Gconv(nn.Module):
 
         ax = self.a_fc(x)
         ux = self.u_fc(x)
-        x = torch.bmm(A, F.relu(ax)) + F.relu(ux) # has size (bs, N, num_outputs)
+        x = F.relu(torch.bmm(A, ax)) + F.relu(ux) # has size (bs, N, num_outputs)
 
         return x
 
