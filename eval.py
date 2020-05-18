@@ -73,7 +73,7 @@ def eval_model(model, dataloader, eval_epoch=None, verbose=False,train_epoch=Non
 
     print('recall = {:.4f}'.format(recalls.item()))
     print('precision = {:.4f}'.format(accs_prec.item()))
-    return recalls
+    return [recalls.item()]
 
 if __name__ == '__main__':
     from utils.dup_stdout_manager import DupStdoutFileManager

@@ -128,7 +128,7 @@ def train_eval_model(model,
 
         # Eval in each epoch
         recalls = eval_model(model, dataloader['test'],train_epoch=epoch)
-        recall_dict = {"{}".format(cls): single_acc for cls, single_acc in zip(dataloader['train'].dataset.classes, accs)}
+        recall_dict = {"{}".format(cls): single_recall for cls, single_recall in zip(dataloader['train'].dataset.classes, recalls)}
         recall_dict['average'] = torch.mean(recalls)
         tfboard_writer.add_scalars(
             'Eval recall',
