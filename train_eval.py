@@ -8,11 +8,9 @@ from tensorboardX import SummaryWriter
 from data.scannet_load import ScannetDataset,get_dataloader
 from utils.permutation_loss import CrossEntropyLoss
 from utils.evaluation_metric import matching_accuracy
-from parallel import DataParallel
 from utils.model_sl import load_model, save_model
 from eval import eval_model
 from utils.hungarian import hungarian
-
 from utils.config import cfg
 from utils.margin_loss import MarginLoss
 import cv2
@@ -37,6 +35,9 @@ def train_eval_model(model,
     if not checkpoint_path.exists():
         checkpoint_path.mkdir(parents=True)
 
+    #model_path = str(checkpoint_path / 'params_{:04}.pt'.format(2))
+    #print('Loading model parameters from {}'.format(model_path))
+    #load_model(model, model_path)
     if resume:
         assert start_epoch != 0
         model_path = str(checkpoint_path / 'params_{:04}.pt'.format(start_epoch))
@@ -54,8 +55,8 @@ def train_eval_model(model,
                                                  last_epoch=cfg.TRAIN.START_EPOCH - 1)
     #scheduler.step()
     for epoch in range(start_epoch, num_epochs):
-        score_thresh = min(epoch * 0.1, 0.5)
-        print('Epoch {}/{},score_thresh {}'.format(epoch, num_epochs - 1, score_thresh))
+        score_thresh=min(epoch*0.1,0.5)
+        print('Epoch {}/{},score_thresh {}'.format(epoch, num_epochs - 1,score_thresh))
         print('-' * 10)
 
         model.train()  # Set model to training mode
@@ -69,12 +70,13 @@ def train_eval_model(model,
 
         # Iterate over data.
         for inputs in dataloader['train']:
-
             data1, data2 = [_.cuda() for _ in inputs['images']]
+
             P1_gt, P2_gt = [_.cuda() for _ in inputs['Ps']]
             n1_gt, n2_gt = [_.cuda() for _ in inputs['ns']]
-            perm_mat = inputs['gt_perm_mat'].cuda()
 
+            weights=inputs['ws'].cuda()
+            perm_mat = inputs['gt_perm_mat'].cuda()
             iter_num = iter_num + 1
 
             # zero the parameter gradients
@@ -82,19 +84,16 @@ def train_eval_model(model,
 
             with torch.set_grad_enabled(True):
                 # forward
-                s_pred, match_emb1, match_emb2, match_edgeemb1, match_edgeemb2, perm_mat, n1_gt, n2_gt = \
+                s_pred, d_pred,match_emb1,match_emb2,match_edgeemb1,match_edgeemb2,perm_mat,n1_gt,n2_gt = \
                     model(data1, data2, P1_gt, P2_gt, n1_gt, n2_gt,perm_mat=perm_mat,score_thresh=score_thresh)
 
                 multi_loss = []
+                loss_lsm = criterion(s_pred, perm_mat, n1_gt, n2_gt,weights)
 
-                loss_pca = criterion(s_pred, perm_mat, n1_gt, n2_gt)
-                loss_marg1=margin_loss(match_emb1,match_emb2,perm_mat,n1_gt, n2_gt)
-                loss_marg2 = margin_loss(match_emb2, match_emb1, perm_mat.transpose(1,2), n2_gt, n1_gt)
-
-                loss_edgemarg1=marginedge_loss(match_edgeemb1,match_edgeemb2,perm_mat,n1_gt, n2_gt)
-                loss_edgemarg2 = marginedge_loss(match_edgeemb2, match_edgeemb1, perm_mat.transpose(1,2), n2_gt, n1_gt)
-
-                loss=(loss_marg1+loss_marg2+loss_edgemarg1+loss_edgemarg2)*0.5*0.25+loss_pca
+                loss_marg=margin_loss(match_emb1,match_emb2,perm_mat,n1_gt, n2_gt)
+                loss_edgemarg=marginedge_loss(match_edgeemb1,match_edgeemb2,perm_mat,n1_gt, n2_gt)
+                loss=(loss_marg+loss_edgemarg)*0.25+loss_lsm#(loss_marg)*0.5+loss_pca
+                # backward + optimize
                 loss.backward()
                 optimizer.step()
 
@@ -102,7 +101,6 @@ def train_eval_model(model,
                 loss_dict = {'loss_{}'.format(i): l.item() for i, l in enumerate(multi_loss)}
                 loss_dict['loss'] = loss.item()
                 tfboard_writer.add_scalars('loss', loss_dict, epoch * cfg.TRAIN.EPOCH_ITERS + iter_num)
-
                 # statistics
                 running_loss += loss.item() * perm_mat.size(0)
                 epoch_loss += loss.item() * perm_mat.size(0)
@@ -125,17 +123,10 @@ def train_eval_model(model,
         torch.save(optimizer.state_dict(), str(checkpoint_path / 'optim_{:04}.pt'.format(epoch + 1)))
 
         print('Epoch {:<4} Loss: {:.4f}'.format(epoch, epoch_loss))
+        print()
 
         # Eval in each epoch
-        recalls = eval_model(model, dataloader['test'],train_epoch=epoch)
-        recall_dict = {"{}".format(cls): single_recall for cls, single_recall in zip(dataloader['train'].dataset.classes, recalls)}
-        recall_dict['average'] = torch.mean(recalls)
-        tfboard_writer.add_scalars(
-            'Eval recall',
-            recall_dict,
-            (epoch + 1) * cfg.TRAIN.EPOCH_ITERS
-        )
-
+        accs = eval_model(model, dataloader['test'],train_epoch=epoch)
         scheduler.step()
 
     time_elapsed = time.time() - since
@@ -146,8 +137,8 @@ def train_eval_model(model,
 
 
 if __name__ == '__main__':
-    from utils.parse_args import parse_args
     from utils.dup_stdout_manager import DupStdoutFileManager
+    from utils.parse_args import parse_args
     from utils.print_easydict import print_easydict
 
     args = parse_args('Deep learning of graph matching training & evaluation code.')
@@ -175,15 +166,18 @@ if __name__ == '__main__':
     model = Net(cfg.OUTPUT_SIZE,cfg.SCALES,)
     model = model.cuda()
 
+
     criterion = CrossEntropyLoss()
 
     optimizer = optim.SGD(model.parameters(), lr=cfg.TRAIN.LR, momentum=cfg.TRAIN.MOMENTUM, nesterov=True)
+    #model = DataParallel(model, device_ids=cfg.GPUS)
 
     if not Path(cfg.OUTPUT_PATH).exists():
         Path(cfg.OUTPUT_PATH).mkdir(parents=True)
 
     now_time = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
     tfboardwriter = SummaryWriter(logdir=str(Path(cfg.OUTPUT_PATH) / 'tensorboard' / 'training_{}'.format(now_time)))
+
     with DupStdoutFileManager(str(Path(cfg.OUTPUT_PATH) / ('train_log_' + now_time + '.log'))) as _:
         print_easydict(cfg)
         model = train_eval_model(model, criterion, optimizer, dataloader, tfboardwriter,

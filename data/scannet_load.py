@@ -5,11 +5,11 @@ from torchvision import transforms
 import numpy as np
 import random
 import math
+
 from data.scannet import Scannet
-#from data.scannet_aug import Scannet
+
 
 from utils.config import cfg
-
 
 class ScannetDataset(Dataset):
     def __init__(self, name, length, expand_region,cls=None, **args):
@@ -18,7 +18,7 @@ class ScannetDataset(Dataset):
         if (self.ds.sets == "train"):
             self.length = length
         else:
-            self.length = self.ds.length
+            self.length = self.ds.length  # NOTE images pairs are sampled randomly, so there is no exact definition of dataset size
         self.obj_size = self.ds.obj_resize
         self.expand_region=expand_region
         self.classes=self.ds.classes
@@ -31,8 +31,6 @@ class ScannetDataset(Dataset):
             pts = pt_gt[idx]
             pt1 = (pts[0], pts[1])
             pt2 = (pts[2], pts[3])
-            # print pt2[0], pt3[0]
-            angle = 0
             if (pt1[0] - pt2[0]) != 0:
                 angle = -np.arctan(float(pt1[1] - pt2[1]) / float(pt1[0] - pt2[0])) / 3.1415926 * 180
             else:
@@ -41,8 +39,8 @@ class ScannetDataset(Dataset):
             if angle < -45.0:
                 angle = angle + 180
 
-            x_ctr = float(pt1[0] + pt2[0]) / 2  
-            y_ctr = float(pt1[1] + pt2[1]) / 2  
+            x_ctr = float(pt1[0] + pt2[0]) / 2  # pt1[0] + np.abs(float(pt1[0] - pt3[0])) / 2
+            y_ctr = float(pt1[1] + pt2[1]) / 2  # pt1[1] + np.abs(float(pt1[1] - pt3[1])) / 2
             width = math.sqrt((pt1[0] - pt2[0]) * (pt1[0] - pt2[0]) + (pt1[1] - pt2[1]) * (pt1[1] - pt2[1]))
             boxes.append([x_ctr, y_ctr,self.expand_region,width,angle])
         boxes=np.array(boxes)
@@ -63,23 +61,19 @@ class ScannetDataset(Dataset):
         pt1_boxes=self.pts_to_boxes(P1_gt,n1_gt)
         pt2_boxes=self.pts_to_boxes(P2_gt,n2_gt)
 
-        idx_tens=np.array([idx])
         ret_dict = {'Ps': [torch.Tensor(x) for x in [pt1_boxes, pt2_boxes]],
                     'ns': [torch.tensor(x) for x in [n1_gt, n2_gt]],
-                    'gt_perm_mat': perm_mat}
+                    'gt_perm_mat': perm_mat,
+                    "ws":weights}
 
         imgs = [anno['image'] for anno in anno_pair]
-        if imgs[0] is not None:
-            trans = transforms.Compose([
-                    transforms.ToTensor(),
-                    transforms.Normalize(cfg.NORM_MEANS, cfg.NORM_STD)
-                    ])
-            imgs = [trans(img) for img in imgs]
-            ret_dict['images'] = imgs
-        elif 'feat' in anno_pair[0]['keypoints'][0]:
-            feat1 = np.stack([kp['feat'] for kp in anno_pair[0]['keypoints']], axis=-1)
-            feat2 = np.stack([kp['feat'] for kp in anno_pair[1]['keypoints']], axis=-1)
-            ret_dict['features'] = [torch.Tensor(x) for x in [feat1, feat2]]
+
+        trans = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(cfg.NORM_MEANS, cfg.NORM_STD)
+                ])
+        imgs = [trans(img) for img in imgs]
+        ret_dict['images'] = imgs
 
         return ret_dict
 
@@ -159,7 +153,7 @@ def worker_init_rand(worker_id):
     np.random.seed(torch.initial_seed() % 2 ** 32)
 
 
-def get_dataloader(dataset, fix_seed=True, shuffle=True):
+def get_dataloader(dataset, fix_seed=True, shuffle=False):
     return torch.utils.data.DataLoader(
         dataset, batch_size=cfg.BATCH_SIZE, shuffle=shuffle, num_workers=cfg.DATALOADER_NUM, collate_fn=collate_fn,
         pin_memory=False, worker_init_fn=worker_init_fix if fix_seed else worker_init_rand

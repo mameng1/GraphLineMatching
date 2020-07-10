@@ -23,17 +23,17 @@ sometimes = lambda aug: iaa.Sometimes(0.5, aug)
 seq = iaa.Sequential(
     [
         # apply the following augmenters to most images
-        iaa.Fliplr(0.6), # horizontally flip 50% of all images
-        iaa.Flipud(0.2), # vertically flip 20% of all images
+       # iaa.Fliplr(0.6), # horizontally flip 50% of all images
+       # iaa.Flipud(0.2), # vertically flip 20% of all images
         # crop images by -5% to 10% of their height/width
         #sometimes(iaa.CropAndPad(
         #    percent=(-0.05, 0.1))),
 
         iaa.Affine(
-            scale={"x": (0.3, 1.2), "y": (0.8, 1.2)}, # scale images to 80-120% of their size, individually per axis
-            translate_percent={"x": (-0.2, 0.2), "y": (-0.2, 0.2)}, # translate by -20 to +20 percent (per axis)
-            rotate=(-45, 45), # rotate by -45 to +45 degrees
-            shear=(-16, 16), # shear by -16 to +16 degrees
+            scale=(0.6, 2), # scale images to 80-120% of their size, individually per axis
+            #translate_percent={"x": (-0.2, 0.2), "y": (-0.2, 0.2)}, # translate by -20 to +20 percent (per axis)
+            rotate=(-20, 20), # rotate by -45 to +45 degrees
+            #shear=(-16, 16), # shear by -16 to +16 degrees
             #order=[0, 1], # use nearest neighbour or bilinear interpolation (fast)
            # cval=(0, 255), # if mode is constant, use a cval between 0 and 255
            # mode=ia.ALL # use any of scikit-image's warping modes (see 2nd image from the top for examples)
@@ -62,7 +62,7 @@ seq = iaa.Sequential(
                #     iaa.CoarseDropout((0.03, 0.15), size_percent=(0.02, 0.05), per_channel=0.2),
                # ]),
                 #iaa.Invert(0.05, per_channel=True), # invert color channels
-                iaa.Add((-10, 10), per_channel=0.5), # change brightness of images (by -10 to 10 of original value)
+                iaa.Add((-40, 40), per_channel=0.5), # change brightness of images (by -10 to 10 of original value)
                 #iaa.AddToHueAndSaturation((-20, 20)), # change hue and saturation
                 # either change the brightness of the whole image (sometimes
                 # per channel) or change the brightness of subareas
@@ -112,11 +112,70 @@ def load_line(line_path):
         lines_list=[[float(ii) for ii in item]for item in lines_list]
     return lines_list
 
-train_file="/home/mameng/dataset/scannet/datadir_line09nms/val_img.txt"
-label_file="/home/mameng/dataset/scannet/datadir_line09nms/val_label.txt"
-img_savedir="/home/mameng/dataset/scannet/scannet_aug/val/image"
-label_savedir="/home/mameng/dataset/scannet/scannet_aug/val/label"
+train_file="/home/mameng/dataset/scannet/datadir_line09nms94/train_img.txt"
+label_file="/home/mameng/dataset/scannet/datadir_line09nms94/train_label.txt"
+img_savedir="/home/mameng/dataset/scannet/scannet_aug/train/image"
+label_savedir="/home/mameng/dataset/scannet/scannet_aug/train/label"
+"""
+def dealEachFile(line_path):
+    ppath=os.path.dirname(line_path)
+    pppath=os.path.dirname(ppath)
+    basename=os.path.basename(line_path).split(".")[0]
+    img_path=os.path.join(pppath,"color")
+    img_path=os.path.join(img_path,basename+".jpg")
+    scene_name=os.path.basename(pppath)
+    img_savesubdir = os.path.join(img_savedir, scene_name,basename)
+    label_savesubdir = os.path.join(label_savedir, scene_name,basename)
+    if (not os.path.exists(img_savesubdir)):
+        os.makedirs(img_savesubdir)
+    if (not os.path.exists(label_savesubdir)):
+        os.makedirs(label_savesubdir)
 
+    save_imgname = basename+".jpg"
+    save_labelname = basename+".txt"
+
+    image = imageio.imread(img_path)
+    lines_vec = []
+
+    lines_tem = load_line(line_path)
+    lines_svec = []
+    for idx, line in enumerate(lines_tem):
+        line_pts = []
+        p1 = (line[0], line[1])
+        p2 = (line[2], line[3])
+
+        line_pts.append(p1)
+        line_pts.append(p2)
+        line_s = LineString(line_pts, label="{}".format(idx))
+        lines_svec.append(line_s)
+
+    lsoi = LineStringsOnImage(lines_svec, shape=image.shape)
+
+    imageio.imwrite(os.path.join(img_savesubdir, save_imgname), image)
+    saveLineString(os.path.join(label_savesubdir, save_labelname), lsoi)
+    for t in range(10):
+        save_aug_imgname = save_imgname.split(".")[0] + "_" + str(t) + ".jpg"
+        save_aug_labelname = save_labelname.split(".")[0] + "_" + str(t) + ".txt"
+        image_aug, lsoi_aug = seq(image=image, line_strings=lsoi)
+        lsoi_aug = lsoi_aug.remove_out_of_image()
+        lsoi_aug = lsoi_aug.clip_out_of_image()
+        #ia.imshow(lsoi_aug.draw_on_image(image_aug, size=3))
+        imageio.imwrite(os.path.join(img_savesubdir, save_aug_imgname), image_aug)
+        saveLineString(os.path.join(label_savesubdir, save_aug_labelname), lsoi_aug)
+
+
+lines_file=open("train.txt","r")
+lines_list=lines_file.readlines()
+lines_list=[line.strip() for line in lines_list]
+
+
+pool = Pool(22)
+requests = pool.map(dealEachFile,lines_list)
+pool.close()
+pool.join()
+#for line_path in lines_list:
+#    dealEachFile(line_path)
+"""
 def dealFile(img_path,img_savedir,label_path,label_savedir):
     basename = os.path.basename(img_path).split(".")[0]
     img_savesubdir = img_savedir
@@ -143,7 +202,7 @@ def dealFile(img_path,img_savedir,label_path,label_savedir):
         line_pts.append(p2)
         line_s = LineString(line_pts, label="{}".format(int(line[0])))
         lines_svec.append(line_s)
-    if (len(lines_svec) < 10):
+    if (len(lines_svec) < 25):
         return
     lsoi = LineStringsOnImage(lines_svec, shape=image.shape)
 
@@ -157,7 +216,7 @@ def dealFile(img_path,img_savedir,label_path,label_savedir):
         lsoi_aug = lsoi_aug.remove_out_of_image()
         lsoi_aug = lsoi_aug.clip_out_of_image()
         line_len = len(lsoi_aug.line_strings)
-        if (line_len < 5):
+        if (line_len < 25):
             continue
         # ia.imshow(lsoi_aug.draw_on_image(image_aug, size=3))
         imageio.imwrite(os.path.join(img_savesubdir, save_aug_imgname), image_aug)

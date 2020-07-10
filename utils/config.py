@@ -25,26 +25,23 @@ __C.BATCH_SIZE = 4
 __C.PAIR = edict()
 __C.PAIR.RESCALE = (256, 256)  # rescaled image size
 
-
 #wireframe dataset
-__C.WIREFRAME=edict()
-#__C.WIREFRAME.TRAIN_KEY_POINT_DIR="/home/mameng/dataset/scannet/scannet_aug/train/label.txt"
-#__C.WIREFRAME.TRAIN_IMAGE_DIR="/home/mameng/dataset/scannet/scannet_aug/train/image.txt"
-#__C.WIREFRAME.TEST_IMAGE_DIR="/home/mameng/dataset/scannet/scannet_aug/val/image.txt"
-#__C.WIREFRAME.TEST_KEY_POINT_DIR="/home/mameng/dataset/scannet/scannet_aug/val/label.txt"
-__C.WIREFRAME.TRAIN_KEY_POINT_DIR="/home/mameng/dataset/scannet/datadir_line09nms/train_label.txt"
-__C.WIREFRAME.TRAIN_IMAGE_DIR="/home/mameng/dataset/scannet/datadir_line09nms/train_img.txt"
-__C.WIREFRAME.TEST_IMAGE_DIR="/home/mameng/dataset/scannet/datadir_line09nms/val_img.txt"
-__C.WIREFRAME.TEST_KEY_POINT_DIR="/home/mameng/dataset/scannet/datadir_line09nms/val_label.txt"
+__C.scannet=edict()
+__C.scannet.TRAIN_KEY_POINT_DIR="/home/mameng/dataset/scannet/datadir_line09nms94/train_label.txt"
+__C.scannet.TRAIN_IMAGE_DIR="/home/mameng/dataset/scannet/datadir_line09nms94/train_img.txt"
+__C.scannet.TEST_IMAGE_DIR="/home/mameng/dataset/scannet/datadir_line09nms94/uval_img.txt"
+__C.scannet.TEST_KEY_POINT_DIR="/home/mameng/dataset/scannet/datadir_line09nms94/uval_label.txt"
+# GMN model options
 
 
-__C.LM = edict()
-__C.LM.FEATURE_CHANNEL = 512
-__C.LM.BS_ITER_NUM = 20
-__C.LM.BS_EPSILON = 1.0e-10
-__C.LM.VOTING_ALPHA = 200.
-__C.LM.GNN_LAYER = 5
-__C.LM.GNN_FEAT = 1024
+# LSM model options
+__C.LSM = edict()
+__C.LSM.FEATURE_CHANNEL = 512
+__C.LSM.BS_ITER_NUM = 20
+__C.LSM.BS_EPSILON = 1.0e-10
+__C.LSM.VOTING_ALPHA = 200.
+__C.LSM.GNN_LAYER = 5
+__C.LSM.GNN_FEAT = 1024
 
 #
 # Training options
@@ -103,7 +100,7 @@ __C.EVAL.SAMPLES = 1000
 #
 
 __C.SCALES=[1.0/8.0,1.0/16.0]
-__C.EXPAND_REGION=7
+__C.EXPAND_REGION=5
 __C.OUTPUT_SIZE=[__C.EXPAND_REGION,5]
 # name of backbone net
 __C.BACKBONE = 'VGG16_bn'

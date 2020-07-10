@@ -5,8 +5,8 @@ from pathlib import Path
 
 def parse_args(description):
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('--cfg', dest='cfg_file', type=str,
-                        help='an optional config file', default="experiments/vgg16_scannet.yaml")
+    parser.add_argument('--cfg', dest='cfg_file', action='append',
+                        help='an optional config file', default=["/home/mameng/deeplearning/graph-matching/PCA/clran/PCA-GM/experiments/vgg16_lsm_scannet.yaml"], type=str)
     parser.add_argument('--batch', dest='batch_size',
                         help='batch size', default=None, type=int)
     parser.add_argument('--epoch', dest='epoch',
@@ -19,7 +19,8 @@ def parse_args(description):
 
     # load cfg from file
     if args.cfg_file is not None:
-        cfg_from_file(args.cfg_file)
+        for f in args.cfg_file:
+            cfg_from_file(f)
 
     # load cfg from arguments
     if args.batch_size is not None:
@@ -39,30 +40,29 @@ def parse_args(description):
         Path(cfg.OUTPUT_PATH).mkdir(parents=True)
 
     return args
-
 def test_parse_args(description):
     parser = argparse.ArgumentParser()
     parser.add_argument('--cfg', dest='cfg_file', type=str,
                         help='an optional config file',
-                        default="experiments/vgg16_scannet.yaml")
+                        default="experiments/vgg16_pca_scannet.yaml")
     parser.add_argument('--model_path', dest='model_path',
                         help='model name',
-                        default='output/vgg16_linematching_wire/params/params_0010.pt', type=str)
+                        default='output/vgg16_pca_wire/params/params_0006.pt', type=str)
     parser.add_argument('--left_img', dest='left_img',
                         help='left image name',
-                        default='test_data/000800.jpg',
+                        default="/home/mameng/qtpro/LineMatchingBenchmark-master/benchmark/drawer/1.png",
                         type=str)
     parser.add_argument('--right_img', dest='right_img',
                         help='right image name',
-                        default='test_data/000900.jpg',
+                        default="/home/mameng/qtpro/LineMatchingBenchmark-master/benchmark/drawer/2.png",
                         type=str)
     parser.add_argument('--left_lines', dest='left_lines',
                         help='left lines name',
-                        default='test_data/000800.txt',
+                        default="/home/mameng/qtpro/LineMatchingBenchmark-master/benchmark/drawer/ed1.txt",
                         type=str)
     parser.add_argument('--right_lines', dest='right_lines',
                         help='right lines name',
-                        default='test_data/000900.txt',
+                        default="/home/mameng/qtpro/LineMatchingBenchmark-master/benchmark/drawer/ed2.txt",
                         type=str)
     parser.add_argument('--output_path', dest='output_path',
                         help='output path name',

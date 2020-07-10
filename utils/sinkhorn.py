@@ -59,12 +59,105 @@ class Sinkhorn(nn.Module):
             err_res=u_res+v_res
             #print("{},{}".format(u_res,v_res))
             if cpt % 10 == 0:
+                # we can speed up the process by checking for the error only all
+                # the 10th iterations
+                #hhh=torch.matmul(K,v.view(-1, 1))
+                #transp = u.view(-1, 1) * (K * v)
                 transp = u.view(-1, 1) * (K * v)
                 err = (torch.sum(transp) - b).norm(1).pow(2).item()
 
             cpt += 1
+        #print(cpt)
         return u.view((-1, 1)) * K * v.view((1, -1))
 
+    def sink_stabilized(self,M, reg, numItermax=100, tau=1e2, stopThr=1e-9, warmstart=None, print_period=20, cuda=True):
+
+        if cuda:
+            a = torch.ones((M.size()[0],)).cuda()
+            b = torch.ones((M.size()[1],)).cuda()
+        else:
+            a = torch.ones((M.size()[0],))
+            b = torch.ones((M.size()[1],))
+
+        # init data
+        na = len(a)
+        nb = len(b)
+
+        cpt = 0
+        # we assume that no distances are null except those of the diagonal of
+        # distances
+        if warmstart is None:
+            if cuda:
+                alpha, beta = torch.zeros(na).cuda(), torch.zeros(nb).cuda()
+            else:
+                alpha, beta = torch.zeros(na), torch.zeros(nb)
+        else:
+            alpha, beta = warmstart
+
+        if cuda:
+            u, v = torch.ones(na).cuda(), torch.ones(nb).cuda()
+        else:
+            u, v = torch.ones(na), torch.ones(nb)
+
+        def get_K(alpha, beta):
+            return torch.exp(-(M - alpha.view((na, 1)) - beta.view((1, nb))) / reg)
+
+        def get_Gamma(alpha, beta, u, v):
+            return torch.exp(
+                -(M - alpha.view((na, 1)) - beta.view((1, nb))) / reg + torch.log(u.view((na, 1))+self.epsilon) + torch.log(
+                    v.view((1, nb))+self.epsilon))
+
+        # print(np.min(K))
+        fff=-(M - alpha.view((na, 1)) - beta.view((1, nb))) / reg
+        K = get_K(alpha, beta)
+        transp = K
+        loop = 1
+        cpt = 0
+        err = 1
+        while loop:
+
+            uprev = u
+            vprev = v
+
+            # sinkhorn update
+            v = torch.div(b, (K.t().matmul(u) + self.epsilon))
+            u = torch.div(a, (K.matmul(v) + self.epsilon))
+
+            # remove numerical problems and store them in K
+            if torch.max(torch.abs(u)).item() > tau or torch.max(torch.abs(v)).item()> tau:
+                alpha, beta = alpha + reg * torch.log(u+self.epsilon), beta + reg * torch.log(v+self.epsilon)
+
+                if cuda:
+                    u, v = torch.ones(na).cuda(), torch.ones(nb).cuda()
+                else:
+                    u, v = torch.ones(na), torch.ones(nb)
+
+                K = get_K(alpha, beta)
+
+            if cpt % print_period == 0:
+                transp = get_Gamma(alpha, beta, u, v)
+                err = (torch.sum(transp) - b).norm(1).pow(2).item()
+
+            if err <= stopThr:
+                loop = False
+
+            if cpt >= numItermax:
+                loop = False
+
+            # if np.any(np.isnan(u)) or np.any(np.isnan(v)):
+            #    # we have reached the machine precision
+            #    # come back to previous solution and quit loop
+            #    print('Warning: numerical errors at iteration', cpt)
+            #    u = uprev
+            #    v = vprev
+            #    break
+
+            cpt += 1
+        debug1 = torch.sum(torch.isnan(u))
+        debug2 = torch.sum(torch.isnan(v))
+        debug3 = torch.sum(torch.isnan(alpha))
+        debug4 = torch.sum(torch.isnan(beta))
+        return get_Gamma(alpha, beta, u, v)
 
     def forward(self, s, nrows=None, ncols=None, exp=False, exp_alpha=20, dummy_row=False, dtype=torch.float32,last_layer=False,train_stage=True):
         batch_size = s.shape[0]

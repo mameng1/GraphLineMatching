@@ -22,7 +22,7 @@ class Voting(nn.Module):
         self.reset_param()
 
     def reset_param(self):
-        self.learning_z.data.fill_(0.5)
+        self.learning_z.data.fill_(0)
     def forward(self, s, nrow_gt, ncol_gt=None):
 
         # filter dummy nodes
@@ -38,4 +38,3 @@ class Voting(nn.Module):
                 ret_s[b, 0:(n+1), 0:(ncol_gt[b]+1)] =\
                     self.softmax(self.alpha *tem_mat)
         return ret_s
-
