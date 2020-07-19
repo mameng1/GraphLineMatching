@@ -263,7 +263,7 @@ def eval_model(l_img,r_img,l_boxes,r_boxes,l_pts,r_pts,model,model_path):
     with torch.set_grad_enabled(False):
         score_thresh=0.3
         s_pred, _,_,_,_,_,indeces1, indeces2, newn1_gt, newn2_gt = \
-            model(l_img, r_img, l_boxes, r_boxes,None,None,None,None, l_pts, r_pts, None,None,train_stage=False, perm_mat=None,
+            model(l_img, r_img, l_boxes, r_boxes, l_pts, r_pts,perm_mat=None,
                   score_thresh=score_thresh,type='img')
         s_pred_perm = lap_solver(s_pred, newn1_gt, newn2_gt, indeces1, indeces2, l_pts, r_pts)
         #s_pred_perm = lap_solver(s_pred, None, l_pts, r_pts)
@@ -360,7 +360,7 @@ if __name__ == '__main__':
         transforms.Normalize(cfg.NORM_MEANS, cfg.NORM_STD)
     ])
 
-    mod = importlib.import_module('PCA.model')
+    mod = importlib.import_module('LSM.model')
     Net = mod.Net
 
 
